@@ -9,6 +9,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /** 이메일 인증은 쿠키 인증을 사용하지 않습니다. 그 외 업무 경로는 아직 차단합니다. */
 @Configuration
+@org.springframework.context.annotation.Profile("!auth")
 public class SecurityConfig {
 
     @Bean
