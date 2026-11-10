@@ -1,0 +1,19 @@
+# 실제 메일 발송용. mysql,smtp 프로필을 함께 활성화합니다.
+spring:
+  mail:
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+app:
+  verification:
+    from: ${MAIL_FROM}
+    frontend-url: ${EMAIL_VERIFICATION_FRONTEND_URL}
