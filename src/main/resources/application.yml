@@ -3,6 +3,9 @@ spring:
     name: maeum-backend
   profiles:
     default: bootstrap
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
   flyway:
     enabled: false
   autoconfigure:
@@ -37,3 +40,6 @@ app:
   auth:
     access-token-ttl-seconds: 3600
     refresh-token-ttl-seconds: 1209600
+
+  verification:
+    ip-max-per-minute: ${EMAIL_VERIFICATION_IP_MAX_PER_MINUTE:30}

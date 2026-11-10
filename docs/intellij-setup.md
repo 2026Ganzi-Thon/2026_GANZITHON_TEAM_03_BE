@@ -25,11 +25,13 @@
 | bootstrap (기본) | 초기 빌드·기동·헬스 확인 | 연결하지 않음 |
 | mysql | 회원·인증 API 구현용 | 팀이 준비한 MySQL 필요 |
 
-bootstrap에는 업무 API 구현이 없습니다. Spring Security는 health만 허용하고 다른 경로를 차단합니다. JWT 인증·쿠키·CORS·CSRF·오류 응답은 실제 API 구현 단계에서 명세에 맞춰 추가해야 합니다. 기본 CSRF 보호는 유지합니다.
+bootstrap은 DB 없는 기동 확인 전용이며 이메일 인증 Controller·DB 서비스는 등록하지 않습니다. mysql 프로필에서 이메일 인증 발송·확인 API를 사용할 수 있습니다. SMTP 미설정은 503이며 가짜 발송 성공으로 처리하지 않습니다. 이메일 인증 POST 두 경로 외의 CSRF 보호는 유지합니다. JWT 인증·쿠키·배포 CORS 설정은 후속 구현 범위입니다.
 
 ## MySQL 사용 시
 
 IntelliJ에서 bootstrap 실행 구성을 복제하고 프로그램 인자를 `--spring.profiles.active=mysql`로 바꿉니다. Environment variables에 `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`를 지정합니다. 필요하면 `DB_HOST`, `DB_PORT`, `SERVER_PORT`도 지정합니다.
+
+실제 메일 발송 시에는 `--spring.profiles.active=mysql,smtp`를 사용하고 [시연 전 설정 체크리스트](pre-demo-checklist.md)의 SMTP·인증 화면 주소를 환경변수로 지정합니다. 이 값들은 현재 미설정입니다.
 
 Spring Boot는 `.env`를 자동으로 읽지 않습니다. `.env.example`을 참고해 IntelliJ 환경변수에 실제 값을 넣습니다. 비밀번호를 공유 실행 구성 XML이나 커밋할 설정 파일에 쓰지 않습니다.
 
