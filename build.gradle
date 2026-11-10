@@ -26,6 +26,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     runtimeOnly 'com.mysql:mysql-connector-j'
+    implementation 'org.flywaydb:flyway-core'
+    runtimeOnly 'org.flywaydb:flyway-mysql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
@@ -34,4 +36,21 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    exclude '**/*MySqlIntegrationTest.class'
+}
+
+tasks.register('mysqlIntegrationTest', Test) {
+    description = 'Runs persistence and migration tests against a dedicated MySQL test database.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/*MySqlIntegrationTest.class'
+    shouldRunAfter tasks.named('test')
+    doFirst {
+        def testUrl = System.getenv('TEST_MYSQL_URL') ?: ''
+        if (!(testUrl ==~ /jdbc:mysql:\/\/(localhost|127\.0\.0\.1):[0-9]+\/maeum_member_test[a-zA-Z0-9_]*(\?.*)?/)) {
+            throw new GradleException('TEST_MYSQL_URL must target a dedicated local maeum_member_test database.')
+        }
+    }
 }

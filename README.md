@@ -13,7 +13,7 @@
 
 ## 현재 상태와 기술
 
-회원·인증·프로필 개발을 위한 Spring Boot 프로젝트를 초기화했습니다. DB 없이 기동을 확인하는 bootstrap 프로필과 MySQL 연결용 프로필을 구분합니다. 업무 API와 JWT 인증 로직은 아직 구현하지 않았습니다.
+회원·인증·프로필 개발을 위한 Spring Boot 프로젝트와 회원 저장 기반을 구성했습니다. DB 없이 기동을 확인하는 bootstrap 프로필과 MySQL 연결용 프로필을 구분합니다. HTTP 업무 API와 JWT 인증 로직은 아직 구현하지 않았습니다.
 
 | 항목 | 상태 |
 | --- | --- |
@@ -37,7 +37,7 @@
 - 기동 확인: `http://localhost:8080/actuator/health`
 - 기본 bootstrap 프로필은 DB를 연결하지 않습니다. 업무 API 개발 시 mysql 프로필과 실제 DB 환경변수를 지정합니다.
 - `.env.example`은 필요한 환경변수 안내입니다. Spring Boot가 `.env`를 자동으로 읽지는 않습니다.
-- MySQL 설정은 `ddl-auto=validate`이며 DB 스키마를 자동으로 변경하지 않습니다.
+- MySQL 프로필은 Flyway로 버전별 SQL을 적용하고 Hibernate `ddl-auto=validate`로 검증합니다. 전용 빈 스키마에서 시작합니다.
 - 서버 상태 확인 외 API는 초기 보안 설정에서 차단합니다. 실제 인증·프로필 API는 별도 구현이 필요합니다.
 - API 명세 미결정 사항, DB 구조, Refresh Token 저장소, JWT·Google·메일 방식은 구현 전에 확정해야 합니다.
 - 빌드 CI는 아직 구성하지 않았습니다. 공통 세팅은 PR에서 검토한 뒤 팀 공통 기반으로 병합합니다.
@@ -46,6 +46,9 @@
 
 ## 협업 문서
 
+기능은 최신 `develop`에서 브랜치를 만들고 `기능 브랜치 → develop` PR로 통합합니다. 연동·시연 검증 후 `develop → main` PR로 배포 버전을 반영합니다. 두 브랜치에 직접 push하지 않습니다.
+
+- [회원 저장 기반·정책·MySQL 통합 테스트](docs/member-foundation.md)
 - [개발·Git 협업 규칙 제안](CONTRIBUTING.md)
 - [GitHub 관리자 설정 및 초기화 체크리스트](docs/repository-setup.md)
 - [PR 작성 양식](.github/pull_request_template.md)
