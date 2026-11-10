@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Backend - bootstrap (DB 없이 실행 확인)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.ganzithon.maeum.MaeumApplication" />
+    <module name="maeum-backend.main" />
+    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=bootstrap" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
