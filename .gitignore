@@ -9,6 +9,7 @@
 
 # Gradle / Maven
 .gradle/
+.gradle-user-home/
 **/build/
 **/target/
 out/

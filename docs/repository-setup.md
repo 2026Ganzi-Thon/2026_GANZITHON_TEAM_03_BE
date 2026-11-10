@@ -35,17 +35,17 @@
 
 ## 2. Spring Boot 초기화 PR에서 결정할 것
 
-- [ ] Java·Spring Boot 버전
+- [x] Java 21·Spring Boot 3.5.16 (로컬 초기화 승인)
 - [x] 빌드 도구: Gradle
-- [ ] Gradle 버전과 Groovy/Kotlin DSL 선택
+- [x] Gradle 8.14.3 Wrapper·Groovy DSL
 - [ ] MySQL 버전, 로컬 설치 또는 Docker 사용 여부
 - [ ] 패키지 루트·도메인 경계·공통 코드 관리 방식
-- [ ] 환경변수 주입·프로필 선택·IntelliJ 실행 방법
+- [x] 환경변수 주입·프로필 선택·IntelliJ 실행 방법: docs/intellij-setup.md
 - [ ] JWT 알고리즘·키 형식, Refresh Token 서버 저장 구조
 - [ ] 쿠키 SameSite·Domain·Path 및 CORS·CSRF 정책
 - [ ] DB 마이그레이션 도구·이름·적용 절차
 - [ ] 프로필 이미지·이메일 발송·구글 로그인 방식
-- [ ] 로컬 실행·테스트·빌드 명령을 README에 추가
+- [x] 로컬 실행·테스트·빌드 명령을 README에 추가
 
 Gradle Wrapper의 gradlew·gradlew.bat·gradle/wrapper 파일들을 커밋합니다. gradlew에는 macOS/Linux 실행 권한을 설정합니다.
 

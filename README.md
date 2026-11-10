@@ -13,34 +13,34 @@
 
 ## 현재 상태와 기술
 
-이 저장소의 최초 구성은 협업 문서와 개발 환경 설정 예시입니다. 애플리케이션은 아직 초기화하지 않았으며 실행 가능한 서버·테스트·빌드 CI는 포함하지 않습니다.
+회원·인증·프로필 개발을 위한 Spring Boot 프로젝트를 초기화했습니다. DB 없이 기동을 확인하는 bootstrap 프로필과 MySQL 연결용 프로필을 구분합니다. 업무 API와 JWT 인증 로직은 아직 구현하지 않았습니다.
 
 | 항목 | 상태 |
 | --- | --- |
 | 개발 환경 | macOS Apple Silicon, IntelliJ IDEA, Codex Desktop |
 | 협업 | 백엔드 3명, GitHub Feature Branch·PR |
-| 언어·프레임워크 | Java·Spring Boot 예정, 버전 미정 |
+| 언어·프레임워크 | Java 21·Spring Boot 3.5.16 (프로젝트 생성 승인 조합) |
 | DB | MySQL 예정, 버전 미정 |
-| 빌드 도구 | Gradle 확정, 버전·Groovy/Kotlin DSL 미정 |
+| 빌드 도구 | Gradle 8.14.3 Wrapper·Groovy DSL |
 | 배포 환경 | 미정 |
 
-## 개발 준비 순서
+## 실행 및 개발 준비
 
-1. 팀에서 Java·Spring Boot·Gradle 버전, 빌드 파일 형식과 패키지 구조를 합의합니다.
-2. 별도 PR에서 Spring Boot 프로젝트를 생성하고 Wrapper를 커밋합니다.
-3. 환경변수와 애플리케이션 설정의 연결을 구현합니다.
-4. 로컬 실행·테스트 명령과 DB 준비 방법을 이 문서에 추가합니다.
-5. 실제 빌드·테스트 CI를 추가하고 첫 성공 실행 후 브랜치 필수 검사로 등록합니다.
-
-## 환경 설정
-
-필요하면 아래 명령으로 로컬 참고 파일을 만듭니다.
+자세한 절차와 IntelliJ JDK 경로는 [IntelliJ 설정 안내](docs/intellij-setup.md)를 참고합니다.
 
 ```sh
-cp .env.example .env
+# Java 21이 설정된 환경에서 실행
+./gradlew build
+./gradlew bootRun --args='--spring.profiles.active=bootstrap'
 ```
 
-.env.example은 환경변수 **이름 제안**입니다. 현재 이를 읽는 애플리케이션이나 Docker 설정은 없습니다. Spring Boot가 .env를 자동으로 읽는다고 가정하지 마세요. 초기화 PR에서 IntelliJ 또는 셸의 환경변수 주입 방법과 application 설정 매핑을 명시합니다.
+- 기동 확인: `http://localhost:8080/actuator/health`
+- 기본 bootstrap 프로필은 DB를 연결하지 않습니다. 업무 API 개발 시 mysql 프로필과 실제 DB 환경변수를 지정합니다.
+- `.env.example`은 필요한 환경변수 안내입니다. Spring Boot가 `.env`를 자동으로 읽지는 않습니다.
+- MySQL 설정은 `ddl-auto=validate`이며 DB 스키마를 자동으로 변경하지 않습니다.
+- 서버 상태 확인 외 API는 초기 보안 설정에서 차단합니다. 실제 인증·프로필 API는 별도 구현이 필요합니다.
+- API 명세 미결정 사항, DB 구조, Refresh Token 저장소, JWT·Google·메일 방식은 구현 전에 확정해야 합니다.
+- 빌드 CI는 아직 구성하지 않았습니다. 공통 세팅은 PR에서 검토한 뒤 팀 공통 기반으로 병합합니다.
 
 실제 비밀번호·JWT 키·토큰·OAuth 시크릿·감정 기록·고민 본문을 저장소·이슈·PR·로그에 넣지 않습니다.
 
