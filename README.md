@@ -46,6 +46,8 @@
 
 ## 협업 문서
 
+기능은 최신 `develop`에서 브랜치를 만들고 `기능 브랜치 → develop` PR로 통합합니다. 연동·시연 검증 후 `develop → main` PR로 배포 버전을 반영합니다. 두 브랜치에 직접 push하지 않습니다.
+
 - [회원 저장 기반·정책·MySQL 통합 테스트](docs/member-foundation.md)
 - [개발·Git 협업 규칙 제안](CONTRIBUTING.md)
 - [GitHub 관리자 설정 및 초기화 체크리스트](docs/repository-setup.md)

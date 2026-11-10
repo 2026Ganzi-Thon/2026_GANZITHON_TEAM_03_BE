@@ -56,4 +56,4 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 ## GitHub에 올리기 전
 
-팀 저장소는 `https://github.com/2026Ganzi-Thon/2026_GANZITHON_TEAM_03_BE.git`입니다. 초기 세팅은 `codex/backend-repository-setup` 브랜치에서 PR로 검토합니다. 세 명 모두 초기 세팅이 병합된 동일한 기반에서 기능 브랜치를 생성합니다. 각자의 기능을 `main`에 직접 push하지 않습니다.
+팀 저장소는 `https://github.com/2026Ganzi-Thon/2026_GANZITHON_TEAM_03_BE.git`입니다. 공통 초기 세팅은 main에 병합되었으며 그 커밋에서 develop을 만들었습니다. 새 기능은 최신 develop에서 브랜치를 생성하고, 기능 브랜치를 push한 뒤 develop 대상 PR로 검토·병합합니다. 연동·시연 검증 후 develop에서 main으로 PR을 올립니다. main·develop에 직접 push하지 않습니다.

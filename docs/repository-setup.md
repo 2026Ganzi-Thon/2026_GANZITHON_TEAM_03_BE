@@ -6,9 +6,9 @@
 
 저장소 Settings에서 권한·정책을 확인합니다. 이 구성 작업에 연결된 계정은 push 권한은 있지만 admin·maintain 권한은 없습니다.
 
-### main 보호
+### main·develop 보호
 
-- [ ] main 대상 규칙 또는 Ruleset 생성
+- [ ] main·develop 대상 규칙 또는 Ruleset 생성
 - [ ] 병합에 PR 요구
 - [ ] 작성자 외 최소 1명 승인 요구
 - [ ] 리뷰 대화 해결 요구
@@ -53,14 +53,14 @@ Gradle Wrapper의 gradlew·gradlew.bat·gradle/wrapper 파일들을 커밋합니
 
 기술 버전과 프로젝트 파일이 없는 상태에서 임의 버전의 Spring Boot 프로젝트나 항상 성공하는 빌드 검사를 만들지 않습니다. 초기화 직후 같은 PR 또는 다음 PR에서 아래를 추가합니다.
 
-- [ ] pull_request 대상 main과 main push에서 실행
+- [ ] pull_request 대상 main·develop과 두 브랜치 push에서 실행
 - [ ] contents: read 등 최소 권한 명시
 - [ ] 확정된 Java 버전 설치
 - [ ] 저장소의 Wrapper로 빌드·테스트 실행
 - [ ] DB 의존 테스트에는 격리된 테스트 DB 준비
 - [ ] 외부 Google·메일 서비스가 없어도 테스트가 가능하도록 구성
 - [ ] 실패 시 실제로 워크플로가 실패하도록 설정
-- [ ] 테스트 결과 확인 후 상태 검사 이름을 main 보호에 등록
+- [ ] 테스트 결과 확인 후 상태 검사 이름을 main·develop 보호에 등록
 
 ## 공식 안내
 
