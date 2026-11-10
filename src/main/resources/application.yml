@@ -3,6 +3,8 @@ spring:
     name: maeum-backend
   profiles:
     default: bootstrap
+  flyway:
+    enabled: false
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration

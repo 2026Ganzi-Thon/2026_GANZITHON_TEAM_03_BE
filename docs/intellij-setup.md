@@ -33,7 +33,7 @@ IntelliJ에서 bootstrap 실행 구성을 복제하고 프로그램 인자를 `-
 
 Spring Boot는 `.env`를 자동으로 읽지 않습니다. `.env.example`을 참고해 IntelliJ 환경변수에 실제 값을 넣습니다. 비밀번호를 공유 실행 구성 XML이나 커밋할 설정 파일에 쓰지 않습니다.
 
-현재 DB 엔티티·스키마·마이그레이션은 생성하지 않았습니다. `ddl-auto=validate`이며 실행만으로 기존 DB를 생성·수정·삭제하지 않습니다. 실제 DB 연결 검증은 접속 정보와 스키마가 준비된 후 수행합니다.
+회원 저장 기반은 Flyway V1으로 `users`, `local_credentials`를 생성하고 Hibernate `ddl-auto=validate`로 검증합니다. 전용 빈 스키마에서 시작하며 기존 수동 생성 DB를 임의로 baseline 처리하지 않습니다. [회원 저장 기반 안내](member-foundation.md)를 참고합니다.
 
 ## 터미널
 
