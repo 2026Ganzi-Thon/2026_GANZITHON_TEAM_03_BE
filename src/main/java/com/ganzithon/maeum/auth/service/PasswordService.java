@@ -15,14 +15,14 @@ public class PasswordService {
 
     public String encodeForRegistration(String password) {
         if (password == null) {
-            throw new IllegalArgumentException("비밀번호를 입력해주세요.");
+            throw new RegistrationPasswordException("비밀번호를 입력해주세요.");
         }
         int length = password.codePointCount(0, password.length());
         if (length < 8 || length > 64
                 || password.chars().noneMatch(c -> c >= 'A' && c <= 'Z')
                 || password.chars().noneMatch(c -> c >= '0' && c <= '9')
                 || !SPECIAL.matcher(password).find()) {
-            throw new IllegalArgumentException("비밀번호는 8~64자이며 영문 대문자, 숫자, 특수문자를 포함해야 합니다.");
+            throw new RegistrationPasswordException("비밀번호는 8~64자이며 영문 대문자, 숫자, 특수문자를 포함해야 합니다.");
         }
         return encoder.encode(password);
     }

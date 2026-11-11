@@ -14,7 +14,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /** 쿠키를 사용하는 인증 동작은 허용된 프론트 Origin에서만 요청받습니다. */
 public class AuthOriginFilter extends OncePerRequestFilter {
     public static final Set<String> COOKIE_PATHS = Set.of("/api/v1/auth/google/challenges",
-            "/api/v1/auth/google", "/api/v1/auth/refresh", "/api/v1/auth/logout");
+            "/api/v1/auth/google", "/api/v1/auth/refresh", "/api/v1/auth/logout",
+            "/api/v1/auth/signup", "/api/v1/auth/login");
     private final AuthSettings settings;
     private final ObjectMapper mapper;
     public AuthOriginFilter(AuthSettings settings, ObjectMapper mapper) { this.settings = settings; this.mapper = mapper; }
