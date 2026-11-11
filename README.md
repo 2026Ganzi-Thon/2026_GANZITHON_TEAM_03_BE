@@ -24,6 +24,8 @@
 | 빌드 도구 | Gradle 8.14.3 Wrapper·Groovy DSL |
 | 배포 환경 | 미정 |
 
+로그인한 회원은 내 정보 조회·수정(`GET/PATCH /api/v1/users/me`), 닉네임 중복 확인(`GET /api/v1/users/nickname-availability`), 초기 프로필 설정과 온보딩 완료(`PATCH /api/v1/users/me/initial-profile`, `PATCH /api/v1/users/me/onboarding`)를 사용할 수 있습니다. 닉네임은 앞뒤 공백을 제거한 뒤 한글·영문·숫자·밑줄로 2~8자를 허용하며, 대소문자를 구분합니다. 초기 설정에는 닉네임이 필요합니다. 나이대·지역은 코드 목록이 정해질 때까지 최대 30자의 선택값으로 받습니다.
+
 ## 실행 및 개발 준비
 
 자세한 절차와 IntelliJ JDK 경로는 [IntelliJ 설정 안내](docs/intellij-setup.md)를 참고합니다.

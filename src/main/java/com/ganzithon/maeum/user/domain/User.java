@@ -38,8 +38,28 @@ public class User {
     public Long getId() { return id; }
     public String getContactEmail() { return contactEmail; }
     public String getNickname() { return nickname; }
+    public String getProfileImageUrl() { return profileImageUrl; }
+    public String getIntroduction() { return introduction; }
+    public String getAgeGroup() { return ageGroup; }
+    public String getRegionCode() { return regionCode; }
+    public Instant getOnboardingCompletedAt() { return onboardingCompletedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public boolean isProfileCompleted() { return profileCompletedAt != null; }
     public boolean isOnboardingCompleted() { return onboardingCompletedAt != null; }
+
+    public void updateProfile(String nickname, String introduction, String ageGroup, String regionCode) {
+        this.nickname = nickname;
+        this.introduction = introduction;
+        this.ageGroup = ageGroup;
+        this.regionCode = regionCode;
+    }
+
+    public void completeProfile(Instant completedAt) {
+        if (profileCompletedAt == null) profileCompletedAt = completedAt;
+    }
+
+    public void completeOnboarding(Instant completedAt) {
+        if (onboardingCompletedAt == null) onboardingCompletedAt = completedAt;
+    }
 }
