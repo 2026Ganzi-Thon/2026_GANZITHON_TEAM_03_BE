@@ -8,7 +8,6 @@
 - 최신 `develop`에서 기능 브랜치를 만들고 `기능 브랜치 → develop` PR로 리뷰·병합합니다. main과 develop에 직접 푸시하지 않습니다.
 - develop에서 프론트 연동·시연 검증을 마친 뒤 `develop → main` PR로 배포 버전을 반영합니다.
 - 예시: feat/12-emotion-record, fix/25-wool-duplicate, docs/api-guide, chore/repository-setup
-- Codex가 만든 브랜치는 codex/ 접두사를 사용합니다.
 - Git Worktree는 한 사람이 여러 브랜치를 병행해야 할 때 선택 사용합니다.
 
 ## 커밋·PR
