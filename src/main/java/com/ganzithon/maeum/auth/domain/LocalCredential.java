@@ -29,9 +29,14 @@ public class LocalCredential {
     protected LocalCredential() { }
 
     public LocalCredential(User user, EmailAddress email, String passwordHash) {
+        this(user, email, passwordHash, null);
+    }
+
+    public LocalCredential(User user, EmailAddress email, String passwordHash, Instant emailVerifiedAt) {
         this.user = java.util.Objects.requireNonNull(user);
         this.email = java.util.Objects.requireNonNull(email.value());
         this.passwordHash = java.util.Objects.requireNonNull(passwordHash);
+        this.emailVerifiedAt = emailVerifiedAt;
         this.passwordChangedAt = Instant.now();
     }
 

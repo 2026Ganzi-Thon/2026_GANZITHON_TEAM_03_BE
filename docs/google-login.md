@@ -84,10 +84,10 @@ Google ID Token은 서비스 Access Token으로 사용할 수 없습니다. 로�
 
 ## DB·검증·남은 작업
 
-V3에서 social_accounts, user_consents, auth_identity_locks, google_login_challenges, auth_sessions, refresh_tokens를 추가합니다. 적용된 V1·V2는 변경하지 않습니다. 일반 회원가입도 추후 동일 동의·세션 구조를 재사용합니다.
+V3에서 social_accounts, user_consents, auth_identity_locks, google_login_challenges, auth_sessions, refresh_tokens를 추가합니다. 적용된 V1·V2는 변경하지 않습니다. 일반 회원가입도 같은 동의·세션 구조를 사용합니다.
 
 자동 테스트는 로컬 RSA 키로 Google JWT 검증을 확인하고, 별도 MySQL 8.0 DB에서 신규/기존 로그인·동의 롤백·계정 분리·중복 가입·동시 재발급·재사용 폐기·만료·로그아웃·Origin 차단을 확인합니다. 통합 테스트의 Google 검증기는 테스트 대체 구현이며 실제 Google 계정 연동 검증을 대체하지 않습니다.
 
-아직 필요한 작업은 실제 Client ID·Origin·JWT 키·약관 설정, QR 실기기 연동, 일반 회원가입·로그인, 프로필·온보딩 API, 만료 challenge와 세션/Refresh 이력의 보관 기간·정리 작업입니다. 재사용 감지에 필요한 이전 Refresh 이력을 활성 세션 중 임의 삭제하지 않습니다.
+아직 필요한 작업은 실제 Client ID·Origin·JWT 키·약관 설정, QR 실기기 연동, 프로필·온보딩 API, 만료 challenge와 세션/Refresh 이력의 보관 기간·정리 작업입니다. 재사용 감지에 필요한 이전 Refresh 이력을 활성 세션 중 임의 삭제하지 않습니다.
 
 공식 참고: [Google ID Token 서버 검증](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token), [GIS JavaScript nonce·callback](https://developers.google.com/identity/gsi/web/reference/js-reference).

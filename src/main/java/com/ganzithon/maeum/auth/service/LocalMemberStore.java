@@ -6,6 +6,8 @@ import com.ganzithon.maeum.auth.repository.LocalCredentialRepository;
 import com.ganzithon.maeum.user.domain.User;
 import com.ganzithon.maeum.user.repository.UserRepository;
 import jakarta.validation.Validator;
+import java.time.Instant;
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.context.annotation.Profile;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,15 @@ public class LocalMemberStore {
 
     @Transactional
     public Long create(String email, String rawPassword) {
+        return store(email, rawPassword, null).getId();
+    }
+
+    @Transactional
+    public User createVerified(String email, String rawPassword, Instant verifiedAt) {
+        return store(email, rawPassword, Objects.requireNonNull(verifiedAt));
+    }
+
+    private User store(String email, String rawPassword, Instant verifiedAt) {
         EmailAddress address = new EmailAddress(email);
         if (!validator.validate(address).isEmpty()) {
             throw new IllegalArgumentException("올바른 이메일을 입력해주세요.");
@@ -38,7 +49,7 @@ public class LocalMemberStore {
         }
         String hash = passwords.encodeForRegistration(rawPassword);
         User user = users.save(new User(address.value()));
-        credentials.saveAndFlush(new LocalCredential(user, address, hash));
-        return user.getId();
+        credentials.saveAndFlush(new LocalCredential(user, address, hash, verifiedAt));
+        return user;
     }
 }

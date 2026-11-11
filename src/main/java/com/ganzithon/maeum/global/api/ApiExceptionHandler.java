@@ -1,6 +1,7 @@
 package com.ganzithon.maeum.global.api;
 
 import com.ganzithon.maeum.auth.verification.VerificationException;
+import com.ganzithon.maeum.auth.service.RegistrationPasswordException;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,6 +32,12 @@ public class ApiExceptionHandler {
                 .distinct().toList();
         return ResponseEntity.badRequest().body(new ApiError(
                 "COMMON_INVALID_REQUEST", "입력값을 확인해주세요.", fields));
+    }
+
+    @ExceptionHandler(RegistrationPasswordException.class)
+    ResponseEntity<ApiError> invalidPassword(RegistrationPasswordException exception) {
+        return ResponseEntity.badRequest().body(new ApiError("COMMON_INVALID_REQUEST", exception.getMessage(),
+                List.of(new ApiError.FieldError("password", exception.getMessage()))));
     }
 
     @ExceptionHandler({HttpMessageNotReadableException.class, IllegalArgumentException.class})

@@ -29,7 +29,7 @@ public class GoogleAuthController {
     @PostMapping("/google")
     public ResponseEntity<?> google(@Valid @RequestBody GoogleRequest request,
             @CookieValue(name = AuthCookies.CHALLENGE, required = false) String challenge) {
-        var result = google.login(request.credential(), challenge, new GoogleLoginService.Consent(
+        var result = google.login(request.credential(), challenge, new SignupConsents.Input(
                 request.termsVersion(), request.termsAgreed(), request.privacyVersion(), request.privacyAgreed(),
                 request.marketingVersion(), request.marketingAgreed()));
         return ResponseEntity.status(result.body().isNewUser() ? 201 : 200).cacheControl(CacheControl.noStore())
