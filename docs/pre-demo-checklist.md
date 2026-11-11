@@ -21,7 +21,8 @@
 | `SMTP_PASSWORD` | 앱 비밀번호 또는 SMTP 전용 자격증명 | 채팅·Git·공유 XML에 입력하지 않음 |
 | `MAIL_FROM` | 발송 서비스가 허용하는 발신 이메일 | 임의 주소 사용 금지 |
 | `EMAIL_VERIFICATION_FRONTEND_URL` | HTTPS 인증 확인 화면의 전체 주소 | 예: https://실제주소/verify-email. 쿼리·fragment 없이 지정 |
-| `EMAIL_VERIFICATION_IP_MAX_PER_MINUTE` | 같은 IP의 분당 발송 상한 | 기본 30회. 현장 공용 Wi-Fi/NAT·프록시 구성에 맞춰 조정 |
+| `PASSWORD_RESET_FRONTEND_URL` | HTTPS 새 비밀번호 입력 화면의 전체 주소 | 예: https://실제주소/reset-password. 쿼리·fragment 없이 지정 |
+| `EMAIL_VERIFICATION_IP_MAX_PER_MINUTE` | 같은 IP의 가입 인증·재설정 메일 요청 합산 상한 | 기본 30회. 현장 공용 Wi-Fi/NAT·프록시 구성에 맞춰 조정 |
 
 환경변수는 배포 서비스의 비밀값 설정 또는 IntelliJ 실행 구성으로 주입합니다. `.env.example`은 안내용이며 Spring Boot가 `.env`를 자동으로 읽지 않습니다. 비밀값을 보내주실 필요는 없습니다.
 
@@ -78,3 +79,14 @@
 - [ ] HTTPS와 실제 쿠키 송수신 확인. 다른 site 배포는 브라우저의 제3자 쿠키 정책으로 차단될 수 있어 같은 site 배포를 우선 검토
 
 이 구현은 GIS의 JS callback → 자체 JSON API 방식입니다. Google의 redirect POST를 이 API로 바로 연결하지 않습니다. Client Secret은 사용하지 않습니다. 실제 Google 계정 로그인과 배포 환경의 쿠키 연동은 아직 검증하지 않았습니다.
+
+
+## 비밀번호 재설정 연동
+
+- [ ] `POST /api/v1/auth/password-resets`에 이메일을 보내고 202이면 안내 메시지 표시. 메일 전송은 요청 접수 후 진행
+- [ ] 재설정 화면에서 `#token=...`을 읽고 주소창에서 제거. `PATCH /api/v1/auth/password-resets`에 `token`과 `newPassword` 전달
+- [ ] 새 비밀번호는 회원가입과 같은 8~64자 및 영문 대문자·숫자·특수문자 조건 적용
+- [ ] 204 이후 프론트 인증 상태를 비우고 로그인 화면으로 이동
+- [ ] 실제 메일 수신 → 새 비밀번호 설정 → 이전 비밀번호와 기존 세션 거절 → 새 비밀번호 로그인 확인
+
+링크는 30분 유효하며 재요청 간격은 이메일당 60초입니다. 비밀번호 재설정 요청은 서버 메모리의 발송 대기열로 처리하므로 서버가 재시작되면 미처리 요청은 다시 접수해야 합니다.

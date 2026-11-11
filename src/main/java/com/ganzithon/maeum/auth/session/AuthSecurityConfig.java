@@ -17,9 +17,12 @@ import org.springframework.web.cors.*;
 @Configuration
 @Profile("auth")
 public class AuthSecurityConfig {
+    private static final String PASSWORD_RESETS = "/api/v1/auth/password-resets";
     @Bean
     SecurityFilterChain authFilterChain(HttpSecurity http, AuthSettings settings, ObjectMapper mapper) throws Exception {
         var matcher = PathPatternRequestMatcher.withDefaults();
+        var resetSend = matcher.matcher(HttpMethod.POST, PASSWORD_RESETS);
+        var resetApply = matcher.matcher(HttpMethod.PATCH, PASSWORD_RESETS);
         var csrfExceptions = java.util.stream.Stream.concat(AuthOriginFilter.COOKIE_PATHS.stream(), java.util.stream.Stream.of(
                         "/api/v1/auth/email-verifications", "/api/v1/auth/email-verifications/confirm"))
                 .map(path -> matcher.matcher(HttpMethod.POST, path)).toArray(org.springframework.security.web.util.matcher.RequestMatcher[]::new);
@@ -29,17 +32,20 @@ public class AuthSecurityConfig {
                 .requestCache(cache -> cache.disable()).cors(cors -> cors.configurationSource(cors(settings)))
                 .addFilterBefore(new AuthOriginFilter(settings, mapper), CsrfFilter.class)
                 .csrf(csrf -> csrf.ignoringRequestMatchers(csrfExceptions)
+                        .ignoringRequestMatchers(resetSend, resetApply)
                         .ignoringRequestMatchers(request -> {
                             String authorization = request.getHeader("Authorization");
                             return authorization != null && authorization.startsWith("Bearer ");
                         }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers(resetSend, resetApply).permitAll()
                         .requestMatchers(HttpMethod.POST, AuthOriginFilter.COOKIE_PATHS.toArray(String[]::new)).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/email-verifications", "/api/v1/auth/email-verifications/confirm").permitAll()
                         .requestMatchers("/api/v1/**").authenticated().anyRequest().denyAll())
                 .oauth2ResourceServer(resource -> resource
-                        .bearerTokenResolver(request -> AuthOriginFilter.cookieRequest(request) ? null : bearer.resolve(request))
+                        .bearerTokenResolver(request -> AuthOriginFilter.cookieRequest(request)
+                                || resetSend.matches(request) || resetApply.matches(request) ? null : bearer.resolve(request))
                         .jwt(jwt -> { })
                         .authenticationEntryPoint((request, response, exception) -> {
                             String code = "AUTH_ACCESS_TOKEN_INVALID";

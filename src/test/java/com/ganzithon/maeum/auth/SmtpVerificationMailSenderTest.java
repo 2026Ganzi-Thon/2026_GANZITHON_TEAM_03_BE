@@ -1,6 +1,7 @@
 package com.ganzithon.maeum.auth;
 
 import com.ganzithon.maeum.auth.verification.SmtpVerificationMailSender;
+import com.ganzithon.maeum.auth.verification.SmtpAuthMail;
 import com.ganzithon.maeum.auth.verification.VerificationException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,7 +28,7 @@ class SmtpVerificationMailSenderTest {
     @Test
     void missingSettingsAndSmtpFailureAre503WithoutSecretDetails() {
         var factory = new DefaultListableBeanFactory();
-        var missing = new SmtpVerificationMailSender(factory.getBeanProvider(JavaMailSender.class), "", "");
+        var missing = new SmtpVerificationMailSender(new SmtpAuthMail(factory.getBeanProvider(JavaMailSender.class), ""), "");
         assertThatThrownBy(() -> missing.send("member@example.com", "token"))
                 .isInstanceOf(VerificationException.class).hasMessageNotContaining("token");
         var mail = mock(JavaMailSender.class);
@@ -47,6 +48,7 @@ class SmtpVerificationMailSenderTest {
     private SmtpVerificationMailSender sender(JavaMailSender mail, String frontend) {
         var factory = new DefaultListableBeanFactory();
         factory.registerSingleton("mail", mail);
-        return new SmtpVerificationMailSender(factory.getBeanProvider(JavaMailSender.class), "sender@example.com", frontend);
+        return new SmtpVerificationMailSender(
+                new SmtpAuthMail(factory.getBeanProvider(JavaMailSender.class), "sender@example.com"), frontend);
     }
 }

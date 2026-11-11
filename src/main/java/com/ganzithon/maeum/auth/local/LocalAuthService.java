@@ -56,7 +56,7 @@ public class LocalAuthService {
 
     @Transactional
     public Result login(String email, String password) {
-        var credential = credentials.findByEmail(email).orElse(null);
+        var credential = credentials.findByEmailForUpdate(email).orElse(null);
         // 없는 계정도 같은 비용으로 비밀번호를 확인합니다.
         String hash = credential == null ? dummyPasswordHash : credential.getPasswordHash();
         if (!passwords.matches(password, hash) || credential == null || credential.getEmailVerifiedAt() == null) {

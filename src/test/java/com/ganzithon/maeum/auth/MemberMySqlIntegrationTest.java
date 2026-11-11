@@ -58,7 +58,7 @@ class MemberMySqlIntegrationTest {
         assertThat(user.getCreatedAt()).isNotNull();
         assertThat(credential.getEmailVerifiedAt()).isNull();
         assertThat(passwords.matches(" Abcdef1! ", credential.getPasswordHash())).isTrue();
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1", Integer.class)).isEqualTo(3);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1", Integer.class)).isEqualTo(4);
     }
 
     @Test

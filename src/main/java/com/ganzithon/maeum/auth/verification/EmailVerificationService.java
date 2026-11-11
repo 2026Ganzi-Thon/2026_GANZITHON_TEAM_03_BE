@@ -4,7 +4,6 @@ import com.ganzithon.maeum.auth.domain.EmailAddress;
 import jakarta.validation.Validator;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import org.springframework.beans.factory.annotation.Value;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -25,48 +24,35 @@ public class EmailVerificationService {
     private final VerificationMailSender sender;
     private final Validator validator;
     private final Clock clock;
-    private final int ipMaxPerMinute;
+    private final VerificationMailLimits limits;
 
     public EmailVerificationService(JdbcTemplate jdbc, VerificationTokens tokens,
             VerificationMailSender sender, Validator validator, Clock clock,
-            @Value("${app.verification.ip-max-per-minute:30}") int ipMaxPerMinute) {
+            VerificationMailLimits limits) {
         this.jdbc = jdbc;
         this.tokens = tokens;
         this.sender = sender;
         this.validator = validator;
         this.clock = clock;
-        if (ipMaxPerMinute < 1) throw new IllegalArgumentException("Invalid rate limit");
-        this.ipMaxPerMinute = ipMaxPerMinute;
+        this.limits = limits;
     }
 
     @Transactional(timeout = 20)
     public void send(String rawEmail, String clientIp) {
         String email = normalizeEmail(rawEmail);
         Instant now = clock.instant();
-        // IP → 이메일 순서로 잠급니다. 전달 헤더가 아닌 서버에서 확인한 원격 주소를 사용합니다.
-        Limit ip = lockLimit("ip:" + clientIp, now);
-        Limit mailbox = lockLimit("email:" + email, now);
-        if (mailbox.lastSent() != null && now.isBefore(mailbox.lastSent().plusSeconds(60))) {
-            throw rateLimited();
-        }
-        boolean sameWindow = now.isBefore(ip.windowStarted().plusSeconds(60));
-        int count = sameWindow ? ip.count() : 0;
-        if (count >= ipMaxPerMinute) throw rateLimited();
+        limits.reserve("email:" + email, clientIp, now);
         String token = tokens.issue();
         // 시연 규모의 동기 SMTP 전송입니다. 실패 시 DB 변경은 롤백되어 이전 링크를 보존합니다.
         sender.send(email, token);
         invalidate(email, EMAIL, now);
         saveToken(email, EMAIL, token, now.plusSeconds(1800), null, now);
-        jdbc.update("UPDATE email_verification_limits SET last_sent_at=? WHERE limit_key=?",
-                ts(now), tokens.hash("email:" + email));
-        jdbc.update("UPDATE email_verification_limits SET window_started_at=?, request_count=? WHERE limit_key=?",
-                ts(sameWindow ? ip.windowStarted() : now), count + 1, tokens.hash("ip:" + clientIp));
     }
 
     @Transactional
     public Confirmation confirm(String token) {
         Verification initial = find(token);
-        lockLimit("email:" + initial.email(), clock.instant());
+        limits.lockMailbox("email:" + initial.email(), clock.instant());
         Verification current = findLocked(token);
         Instant now = clock.instant();
         validate(current, EMAIL, now);
@@ -81,7 +67,7 @@ public class EmailVerificationService {
     @Transactional(propagation = Propagation.MANDATORY)
     public Instant consumeSignupProof(String token, String rawEmail) {
         Verification initial = find(token);
-        lockLimit("email:" + initial.email(), clock.instant());
+        limits.lockMailbox("email:" + initial.email(), clock.instant());
         Verification proof = findLocked(token);
         Instant now = clock.instant();
         validate(proof, SIGNUP, now);
@@ -94,15 +80,6 @@ public class EmailVerificationService {
         EmailAddress email = new EmailAddress(raw);
         if (!validator.validate(email).isEmpty()) throw new IllegalArgumentException("Invalid email");
         return email.value();
-    }
-
-    private Limit lockLimit(String key, Instant now) {
-        String hash = tokens.hash(key);
-        jdbc.update("INSERT INTO email_verification_limits (limit_key, window_started_at, request_count) VALUES (?, ?, 0) ON DUPLICATE KEY UPDATE limit_key=limit_key",
-                hash, ts(now));
-        return jdbc.queryForObject("SELECT * FROM email_verification_limits WHERE limit_key=? FOR UPDATE",
-                (rs, row) -> new Limit(readInstant(rs, "window_started_at"),
-                        rs.getInt("request_count"), readInstant(rs, "last_sent_at")), hash);
     }
 
     private Verification find(String token) { return lookup(token, false); }
@@ -141,15 +118,11 @@ public class EmailVerificationService {
     private VerificationException invalid() {
         return new VerificationException(HttpStatus.BAD_REQUEST, "AUTH_EMAIL_VERIFICATION_INVALID", "올바르지 않은 인증입니다.");
     }
-    private VerificationException rateLimited() {
-        return new VerificationException(HttpStatus.TOO_MANY_REQUESTS, "AUTH_RATE_LIMITED", "잠시 후 인증 메일을 다시 요청해주세요.");
-    }
     private static LocalDateTime ts(Instant value) { return value == null ? null : LocalDateTime.ofInstant(value, ZoneOffset.UTC); }
     private static Instant readInstant(java.sql.ResultSet result, String name) throws java.sql.SQLException {
         LocalDateTime value = result.getObject(name, LocalDateTime.class);
         return value == null ? null : value.toInstant(ZoneOffset.UTC);
     }
-    private record Limit(Instant windowStarted, int count, Instant lastSent) { }
     private record Verification(String email, String purpose, Instant expiresAt, Instant verifiedAt,
             Instant usedAt, Instant invalidatedAt) { }
     public record Confirmation(String email, String signupVerificationToken, int expiresIn) { }

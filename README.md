@@ -13,7 +13,7 @@
 
 ## 현재 상태와 기술
 
-회원 저장 기반과 이메일 인증 발송·확인 API를 구현했습니다. DB 없이 기동을 확인하는 bootstrap 프로필과 MySQL 연결용 프로필을 구분합니다. 실제 메일은 mysql,smtp 프로필과 SMTP 접속 정보가 필요합니다. Google 로그인·신규 가입 동의·JWT 인증·Refresh Token 회전·세션 로그아웃을 구현했습니다. Google 인증은 mysql,auth 프로필과 실제 설정이 필요합니다. 일반 이메일 회원가입·로그인도 `mysql,auth` 프로필에서 사용할 수 있습니다.
+회원 저장 기반과 이메일 인증 발송·확인 API를 구현했습니다. DB 없이 기동을 확인하는 bootstrap 프로필과 MySQL 연결용 프로필을 구분합니다. 실제 메일은 mysql,smtp 프로필과 SMTP 접속 정보가 필요합니다. Google 로그인·신규 가입 동의·JWT 인증·Refresh Token 회전·세션 로그아웃을 구현했습니다. Google 인증은 mysql,auth 프로필과 실제 설정이 필요합니다. 일반 이메일 회원가입·로그인과 비밀번호 재설정도 `mysql,auth` 프로필에서 사용할 수 있습니다. 재설정 메일에는 `smtp` 프로필과 `PASSWORD_RESET_FRONTEND_URL`을 설정합니다.
 
 | 항목 | 상태 |
 | --- | --- |
