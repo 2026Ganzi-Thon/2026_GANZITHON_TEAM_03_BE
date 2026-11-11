@@ -1,22 +1,20 @@
 package com.ganzithon.maeum.auth.session;
 
+import com.ganzithon.maeum.user.consent.ConsentHistory;
 import java.time.Clock;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-
-import static com.ganzithon.maeum.auth.session.AuthSessionService.utc;
 
 @Component
 @Profile("auth")
 public class SignupConsents {
-    private final JdbcTemplate jdbc;
+    private final ConsentHistory history;
     private final Clock clock;
     private final AuthSettings settings;
 
-    public SignupConsents(JdbcTemplate jdbc, Clock clock, AuthSettings settings) {
-        this.jdbc = jdbc;
+    public SignupConsents(ConsentHistory history, Clock clock, AuthSettings settings) {
+        this.history = history;
         this.clock = clock;
         this.settings = settings;
     }
@@ -33,16 +31,11 @@ public class SignupConsents {
     }
 
     public void save(long userId, Input input) {
-        insert(userId, "TERMS", settings.termsVersion(), true);
-        insert(userId, "PRIVACY", settings.privacyVersion(), true);
-        insert(userId, "MARKETING", settings.marketingVersion(), Boolean.TRUE.equals(input.marketingAgreed()));
-    }
-
-    private void insert(long userId, String type, String version, boolean agreed) {
-        jdbc.update("""
-                INSERT INTO user_consents (user_id, consent_type, terms_version, agreed, recorded_at)
-                VALUES (?, ?, ?, ?, ?)
-                """, userId, type, version, agreed, utc(clock.instant()));
+        var now = clock.instant();
+        history.append(userId, ConsentHistory.TERMS, settings.termsVersion(), true, now);
+        history.append(userId, ConsentHistory.PRIVACY, settings.privacyVersion(), true, now);
+        history.append(userId, ConsentHistory.MARKETING, settings.marketingVersion(),
+                Boolean.TRUE.equals(input.marketingAgreed()), now);
     }
 
     public record Input(String termsVersion, Boolean termsAgreed, String privacyVersion, Boolean privacyAgreed,
