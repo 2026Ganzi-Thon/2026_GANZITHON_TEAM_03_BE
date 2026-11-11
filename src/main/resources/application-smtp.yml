@@ -17,3 +17,4 @@ app:
   verification:
     from: ${MAIL_FROM}
     frontend-url: ${EMAIL_VERIFICATION_FRONTEND_URL}
+    password-reset-frontend-url: ${PASSWORD_RESET_FRONTEND_URL:}

@@ -45,4 +45,9 @@ public class LocalCredential {
     public String getPasswordHash() { return passwordHash; }
     public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
     public Instant getPasswordChangedAt() { return passwordChangedAt; }
+
+    public void changePassword(String hash, Instant changedAt) {
+        this.passwordHash = java.util.Objects.requireNonNull(hash);
+        this.passwordChangedAt = java.util.Objects.requireNonNull(changedAt);
+    }
 }

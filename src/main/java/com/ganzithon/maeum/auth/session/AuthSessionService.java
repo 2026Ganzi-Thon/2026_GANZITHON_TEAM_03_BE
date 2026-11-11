@@ -63,6 +63,12 @@ public class AuthSessionService {
                 Boolean.class, sessionId, userId));
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void revokeAll(long userId, Instant revokedAt) {
+        jdbc.update("UPDATE auth_sessions SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL",
+                utc(revokedAt), userId);
+    }
+
     private Issued issue(long userId, String session, Instant now) {
         String refresh = random.issue();
         jdbc.update("INSERT INTO refresh_tokens(token_hash,session_id,expires_at,created_at) VALUES (?,?,?,?)",
