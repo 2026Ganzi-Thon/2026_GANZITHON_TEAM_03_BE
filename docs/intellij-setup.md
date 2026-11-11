@@ -25,7 +25,7 @@
 | bootstrap (기본) | 초기 빌드·기동·헬스 확인 | 연결하지 않음 |
 | mysql | 회원·인증 API 구현용 | 팀이 준비한 MySQL 필요 |
 
-bootstrap은 DB 없는 기동 확인 전용이며 이메일 인증 Controller·DB 서비스는 등록하지 않습니다. mysql 프로필에서 이메일 인증 발송·확인 API를 사용할 수 있습니다. SMTP 미설정은 503이며 가짜 발송 성공으로 처리하지 않습니다. 이메일 인증 POST 두 경로 외의 CSRF 보호는 유지합니다. JWT 인증·쿠키·배포 CORS 설정은 후속 구현 범위입니다.
+bootstrap은 DB 없는 기동 확인 전용이며 이메일 인증 Controller·DB 서비스는 등록하지 않습니다. mysql 프로필에서 이메일 인증 발송·확인 API를 사용할 수 있습니다. SMTP 미설정은 503이며 가짜 발송 성공으로 처리하지 않습니다. auth 미사용 시 이메일 인증 POST 두 경로 외의 CSRF 보호를 유지합니다. Google 로그인과 JWT·쿠키·CORS를 사용하려면 mysql,auth 프로필과 필수 환경변수를 지정합니다. [인증 연동 안내](google-login.md)를 참고합니다.
 
 ## MySQL 사용 시
 
@@ -54,7 +54,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 - `user`: 내 정보·초기 프로필, 닉네임, 온보딩, 동의 관리
 - `global/config`: 공통 프레임워크 설정
 
-컨트롤러·서비스·저장소는 각 기능 구현 시 도메인 안에 추가합니다. 이번 세팅에서는 미확정 JWT 키 방식, Refresh Token 저장 구조, Google 전달 방식, 메일 제공자, DB 마이그레이션 도구를 확정하지 않았습니다.
+컨트롤러·서비스·저장소는 각 기능 구현 시 도메인 안에 추가합니다. 현재 JWT는 HS256, Refresh Token은 해시 DB 저장, Google은 GIS ID Token 전달, DB 변경은 Flyway로 구현했습니다. 실제 메일 제공자와 배포 주소는 별도 설정이 필요합니다.
 
 ## GitHub에 올리기 전
 

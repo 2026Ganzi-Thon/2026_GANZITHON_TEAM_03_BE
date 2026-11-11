@@ -13,7 +13,7 @@
 
 | 환경변수/설정 | 입력 내용 | 비고 |
 | --- | --- | --- |
-| `SPRING_PROFILES_ACTIVE` | `mysql,smtp` | bootstrap은 DB 없는 기동 확인 전용 |
+| `SPRING_PROFILES_ACTIVE` | `mysql,auth,smtp` | bootstrap은 DB 없는 기동 확인 전용 |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | 시연 DB 접속 정보 | 개발·테스트 DB와 구분 |
 | `SMTP_HOST` | 발송 서비스 SMTP 호스트 | Gmail 선택 시 smtp.gmail.com |
 | `SMTP_PORT` | STARTTLS 지원 포트 | 기본 587. 현재 설정은 STARTTLS 방식 |
@@ -44,7 +44,7 @@
 - [ ] 확인 동작에서 `POST /api/v1/auth/email-verifications/confirm`에 JSON `{ "token": "..." }` 전달
 - [ ] 성공 응답의 `signupVerificationToken`을 메모리에 보관하여 후속 회원가입 API에 전달
 - [ ] 400·409·410·429·503 응답에 대한 안내·재발송 경로 구현
-- [ ] 프론트·백엔드가 다른 Origin이면 실제 허용 Origin에 맞춘 CORS 설정 확정. 이번 PR에는 배포 Origin이 없어 임의 허용하지 않음
+- [ ] 프론트·백엔드가 다른 Origin이면 실제 허용 Origin에 맞춘 CORS 설정 확정. `CORS_ALLOWED_ORIGINS`에 정확한 프론트 Origin을 지정하며 와일드카드를 사용하지 않음
 
 ## 시연 전 실제 동작 확인 — 미완료
 
@@ -55,4 +55,26 @@
 - [ ] SMTP 연결 정보·링크 토큰·가입 증명이 로그·분석 도구·오류 수집기에 남지 않는지 확인
 - [ ] 실제 발신 계정으로 도착 시험 후 시연 가능 상태로 표시
 
-현재 실제 SMTP 발신 계정·배포 주소는 미설정이며 실제 메일 수신은 검증하지 않았습니다. 자동 테스트 통과를 실제 수신 성공으로 간주하지 않습니다. Google 로그인, 최종 회원가입·토큰 발급·홈 진입은 각 후속 기능 구현 후 별도로 연동 검증합니다.
+현재 실제 SMTP 발신 계정·배포 주소는 미설정이며 실제 메일 수신은 검증하지 않았습니다. 자동 테스트 통과를 실제 수신 성공으로 간주하지 않습니다. Google 로그인·토큰 발급은 아래 설정 후 실제 연동 검증이 필요합니다. 일반 이메일 최종 회원가입·홈 진입은 후속 기능입니다.
+
+## Google 로그인·토큰 설정 — 직접 설정 필요
+
+| 환경변수/설정 | 입력 내용 |
+| --- | --- |
+| `SPRING_PROFILES_ACTIVE` | `mysql,auth`, 이메일 발송도 사용하면 `mysql,auth,smtp` |
+| `GOOGLE_CLIENT_ID` | Google Cloud의 웹 애플리케이션 Client ID. 프론트와 서버가 같은 값 사용 |
+| `JWT_SECRET_BASE64` | 32바이트 이상 무작위 키의 Base64 값. `openssl rand -base64 32`로 생성 후 비밀값 설정에 저장. 채팅·Git에 공유 금지 |
+| `CORS_ALLOWED_ORIGINS` | 실제 프론트 Origin. 예: `https://app.example.com` (끝 `/` 없음). 여러 개는 쉼표 구분 |
+| `AUTH_COOKIE_SAME_SITE` | 같은 site 배포는 `Lax`, 다른 site는 `None` 검토. Secure는 항상 적용. Origin과 site는 다른 개념 |
+| `TERMS_VERSION`, `PRIVACY_VERSION`, `MARKETING_VERSION` | 프론트에 표시한 각 문서의 실제 버전. 테스트용 v1을 무심코 사용하지 않음 |
+
+- [ ] Google Cloud 웹 클라이언트의 승인된 JavaScript 원본에 프론트 주소 등록
+- [ ] OAuth 동의 화면·사용자 접근 범위·테스트 사용자 설정을 실제 시연 계정으로 확인
+- [ ] 프론트에서 challenge 발급 후 nonce를 GIS 초기화에 전달하고, callback으로 받은 credential을 JSON API에 전달
+- [ ] 모든 쿠키 API에 `credentials: include` 적용. ID Token이나 Refresh Token을 localStorage에 저장하지 않음
+- [ ] Access Token은 메모리에 보관하고 Bearer 헤더로 전달
+- [ ] 프론트에서 재발급을 직렬화하고 여러 탭의 동시 요청도 조정. 사용한 토큰을 재전송하면 세션 전체가 폐기됨
+- [ ] QR로 접속한 실제 Chrome·Safari에서 Google 로그인 → 새로고침 후 재발급 → 로그아웃 확인
+- [ ] HTTPS와 실제 쿠키 송수신 확인. 다른 site 배포는 브라우저의 제3자 쿠키 정책으로 차단될 수 있어 같은 site 배포를 우선 검토
+
+이 구현은 GIS의 JS callback → 자체 JSON API 방식입니다. Google의 redirect POST를 이 API로 바로 연결하지 않습니다. Client Secret은 사용하지 않습니다. 실제 Google 계정 로그인과 배포 환경의 쿠키 연동은 아직 검증하지 않았습니다.

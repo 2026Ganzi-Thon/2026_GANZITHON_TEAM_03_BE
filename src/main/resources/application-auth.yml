@@ -1,0 +1,10 @@
+# mysql,auth 프로필을 함께 사용합니다. 실제 인증 설정이 없으면 시작하지 않습니다.
+app:
+  auth:
+    jwt-secret-base64: ${JWT_SECRET_BASE64}
+    google-client-id: ${GOOGLE_CLIENT_ID}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+    cookie-same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
+    terms-version: ${TERMS_VERSION}
+    privacy-version: ${PRIVACY_VERSION}
+    marketing-version: ${MARKETING_VERSION}

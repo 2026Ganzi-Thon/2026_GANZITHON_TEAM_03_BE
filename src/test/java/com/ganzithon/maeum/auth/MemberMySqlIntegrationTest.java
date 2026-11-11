@@ -37,6 +37,10 @@ class MemberMySqlIntegrationTest {
 
     @BeforeEach
     void resetDedicatedTestDatabase() {
+        jdbc.update("DELETE FROM refresh_tokens");
+        jdbc.update("DELETE FROM auth_sessions");
+        jdbc.update("DELETE FROM user_consents");
+        jdbc.update("DELETE FROM social_accounts");
         jdbc.update("DELETE FROM local_credentials");
         jdbc.update("DELETE FROM users");
     }
@@ -54,7 +58,7 @@ class MemberMySqlIntegrationTest {
         assertThat(user.getCreatedAt()).isNotNull();
         assertThat(credential.getEmailVerifiedAt()).isNull();
         assertThat(passwords.matches(" Abcdef1! ", credential.getPasswordHash())).isTrue();
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1", Integer.class)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1", Integer.class)).isEqualTo(3);
     }
 
     @Test
