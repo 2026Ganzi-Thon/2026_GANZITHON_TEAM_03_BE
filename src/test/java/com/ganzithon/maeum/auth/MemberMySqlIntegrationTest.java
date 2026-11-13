@@ -58,7 +58,9 @@ class MemberMySqlIntegrationTest {
         assertThat(user.getCreatedAt()).isNotNull();
         assertThat(credential.getEmailVerifiedAt()).isNull();
         assertThat(passwords.matches(" Abcdef1! ", credential.getPasswordHash())).isTrue();
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1", Integer.class)).isEqualTo(4);
+        assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history WHERE success = 1 "
+                + "AND version IN ('1', '2', '3', '4')", String.class))
+                .containsExactlyInAnyOrder("1", "2", "3", "4");
     }
 
     @Test
