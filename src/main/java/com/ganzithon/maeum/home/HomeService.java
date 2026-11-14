@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -47,7 +48,7 @@ class HomeService {
                 ((Number) matured.get("c")).longValue());
     }
 
-    private Map<String, Object> todayEmotion(long user, java.time.LocalDate today) {
+    private Map<String, Object> todayEmotion(long user, LocalDate today) {
         var record =
                 store.one(
                         "SELECT id FROM emotion_records WHERE user_id=? AND record_date=?",

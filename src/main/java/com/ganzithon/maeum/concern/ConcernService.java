@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Profile("auth")
@@ -44,6 +46,10 @@ class ConcernService {
         clock = c;
         idem = i;
         this.maturingHours = maturingHours;
+    }
+
+    private Instant now() {
+        return clock.instant().truncatedTo(ChronoUnit.MICROS);
     }
 
     private static String status(Map<String, Object> r, Instant now) {
@@ -102,7 +108,7 @@ class ConcernService {
                 || content.codePointCount(0, content.length()) > CONTENT_LIMIT
                 || !COMFORT_TYPES.contains(type)) throw ActivityApi.bad();
         store.lockUser(user);
-        var now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        var now = now();
         return idem.execute(
                 user,
                 key,
@@ -187,7 +193,7 @@ class ConcernService {
                         id);
         if (((Number) concern.get("user_id")).longValue() == user)
             throw ActivityApi.problem(403, "REPLY_OWN_CONCERN_FORBIDDEN");
-        var now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        var now = now();
         if (concern.get("opened_at") != null
                 || !now.isBefore(ActivityApi.instant(concern.get("matures_at"))))
             throw ActivityApi.problem(409, "CONCERN_REPLY_CLOSED");
@@ -214,8 +220,8 @@ class ConcernService {
     }
 
     Object open(long user, long id) {
-        // 개봉 UPDATE를 첫 쿼리로 실행해 동시 요청이 행 잠금에서 직렬화되고, 이후 조회는 커밋된 결과를 보게 한다.
-        var now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        // 개봉 UPDATE를 첫 쿼리로 실행해 동시 요청이 행 잠금에서 직렬화되고, 이후 조회는 커밋된 결과를 보게 합니다.
+        var now = now();
         int opened =
                 store.update(
                         "UPDATE concerns SET opened_at=? WHERE id=? AND user_id=? AND opened_at IS"
@@ -232,7 +238,7 @@ class ConcernService {
                         + "created_at) VALUES(?,NULL,'SYSTEM',?,?)",
                     id,
                     DEFAULT_COMFORTS.get(
-                            java.util.concurrent.ThreadLocalRandom.current()
+                            ThreadLocalRandom.current()
                                     .nextInt(DEFAULT_COMFORTS.size())),
                     ActivityApi.ts(now));
         }
@@ -352,7 +358,7 @@ class ConcernService {
 
     Object save(long user, long id) {
         // UPDATE를 첫 쿼리로 실행해 동시 요청이 행 잠금에서 직렬화되게 합니다. 이미 보관된 행은 건드리지 않습니다.
-        var now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        var now = now();
         store.update(
                 "UPDATE concerns SET saved_at=? WHERE id=? AND user_id=? AND opened_at IS NOT NULL"
                     + " AND saved_at IS NULL",
