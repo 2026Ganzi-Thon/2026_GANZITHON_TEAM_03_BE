@@ -17,6 +17,7 @@ import java.util.List;
         basePackages = {
             "com.ganzithon.maeum.emotion",
             "com.ganzithon.maeum.care",
+            "com.ganzithon.maeum.concern",
             "com.ganzithon.maeum.rest"
         })
 @Order(0)
