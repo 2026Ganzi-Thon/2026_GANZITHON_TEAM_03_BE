@@ -18,6 +18,7 @@ import java.util.List;
             "com.ganzithon.maeum.emotion",
             "com.ganzithon.maeum.care",
             "com.ganzithon.maeum.concern",
+            "com.ganzithon.maeum.home",
             "com.ganzithon.maeum.rest"
         })
 @Order(0)
