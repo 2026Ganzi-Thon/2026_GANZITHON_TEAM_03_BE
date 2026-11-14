@@ -55,4 +55,28 @@ class ConcernController {
     ResponseEntity<Object> detail(@AuthenticationPrincipal Jwt jwt, @PathVariable String concernId) {
         return ok(service.detail(user(jwt), ActivityApi.id(concernId)));
     }
+
+    @PostMapping("/concerns/{concernId}/replies")
+    ResponseEntity<Object> createReply(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String concernId,
+            @RequestBody JsonNode body) {
+        return ResponseEntity.status(201)
+                .cacheControl(CacheControl.noStore())
+                .body(new ApiResponse<>(service.reply(user(jwt), ActivityApi.id(concernId), body)));
+    }
+
+    @PostMapping("/concerns/{concernId}/open")
+    ResponseEntity<Object> open(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String concernId,
+            @RequestBody(required = false) JsonNode body) {
+        ActivityApi.noBody(body);
+        return ok(service.open(user(jwt), ActivityApi.id(concernId)));
+    }
+
+    @GetMapping("/concerns/{concernId}/replies")
+    ResponseEntity<Object> replies(@AuthenticationPrincipal Jwt jwt, @PathVariable String concernId) {
+        return ok(service.replies(user(jwt), ActivityApi.id(concernId)));
+    }
 }
