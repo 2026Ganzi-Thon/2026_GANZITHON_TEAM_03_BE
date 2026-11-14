@@ -73,8 +73,8 @@ public abstract class ActivityMySqlTestSupport {
         }
     }
 
-    @Autowired MockMvc mvc;
-    @Autowired ObjectMapper mapper;
+    @Autowired protected MockMvc mvc;
+    @Autowired protected ObjectMapper mapper;
     @Autowired LocalMemberStore members;
     @Autowired protected JdbcTemplate db;
     @Autowired protected MutableClock clock;
