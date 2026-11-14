@@ -25,7 +25,7 @@ class HomeService {
 
     Object home(long user) {
         var instant = clock.instant();
-        var today = ActivityApi.today(clock);
+        var today = ActivityApi.day(instant);
         var nickname = store.required("SELECT nickname FROM users WHERE id=?", "USER_NOT_FOUND", user);
         var wallet = store.one("SELECT balance FROM wool_wallets WHERE user_id=?", user);
         var matured =
