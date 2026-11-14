@@ -203,6 +203,26 @@ class ConcernSavedApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
     }
 
     @Test
+    void unsaveOfNeverSavedConcernKeepsRowAsIs() throws Exception {
+        long maturing = maturing(user);
+        long opened = opened(user);
+        var d = doPatch(200, maturing, "unsave", user).get("data");
+        assertEquals("MATURING", d.get("status").asText());
+        assertTrue(d.get("savedAt").isNull());
+        d = doPatch(200, opened, "unsave", user).get("data");
+        assertEquals("OPENED", d.get("status").asText());
+        assertTrue(d.get("savedAt").isNull());
+        for (long id : new long[] {maturing, opened}) {
+            assertNull(
+                    db.queryForObject("SELECT saved_at FROM concerns WHERE id=?", Object.class, id));
+        }
+        assertNull(
+                db.queryForObject("SELECT opened_at FROM concerns WHERE id=?", Object.class, maturing));
+        assertNotNull(
+                db.queryForObject("SELECT opened_at FROM concerns WHERE id=?", Object.class, opened));
+    }
+
+    @Test
     void unsaveOthersOrMissingIs404AndKeepsSaved() throws Exception {
         long id = saved(other, CREATED.plusSeconds(40));
         assertEquals("CONCERN_NOT_FOUND", code(doPatch(404, id, "unsave", user)));
