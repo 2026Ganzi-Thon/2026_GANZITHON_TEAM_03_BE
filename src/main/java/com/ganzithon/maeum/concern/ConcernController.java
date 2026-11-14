@@ -38,6 +38,12 @@ class ConcernController {
                 .body(response.body());
     }
 
+    private ResponseEntity<Object> created(Object data) {
+        return ResponseEntity.status(201)
+                .cacheControl(CacheControl.noStore())
+                .body(new ApiResponse<>(data));
+    }
+
     @GetMapping("/concerns")
     ResponseEntity<Object> list(@AuthenticationPrincipal Jwt jwt) {
         return ok(service.list(user(jwt)));
@@ -61,9 +67,7 @@ class ConcernController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String concernId,
             @RequestBody JsonNode body) {
-        return ResponseEntity.status(201)
-                .cacheControl(CacheControl.noStore())
-                .body(new ApiResponse<>(service.reply(user(jwt), ActivityApi.id(concernId), body)));
+        return created(service.reply(user(jwt), ActivityApi.id(concernId), body));
     }
 
     @PostMapping("/concerns/{concernId}/open")
