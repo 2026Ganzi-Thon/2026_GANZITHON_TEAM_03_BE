@@ -178,15 +178,18 @@ class ConcernService {
         String content = c.textValue().strip();
         if (content.isEmpty() || content.codePointCount(0, content.length()) > REPLY_LIMIT)
             throw ActivityApi.bad();
+        // 공유 잠금으로 위로 저장이 끝날 때까지 개봉·삭제가 기다리게 해, 개봉 뒤에 위로가 들어오거나
+        // 기본 위로와 사용자 위로가 함께 저장되지 않게 합니다.
         var concern =
                 store.required(
-                        "SELECT user_id,matures_at FROM concerns WHERE id=?",
+                        "SELECT user_id,matures_at,opened_at FROM concerns WHERE id=? FOR SHARE",
                         "CONCERN_NOT_FOUND",
                         id);
         if (((Number) concern.get("user_id")).longValue() == user)
             throw ActivityApi.problem(403, "REPLY_OWN_CONCERN_FORBIDDEN");
         var now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
-        if (!now.isBefore(ActivityApi.instant(concern.get("matures_at"))))
+        if (concern.get("opened_at") != null
+                || !now.isBefore(ActivityApi.instant(concern.get("matures_at"))))
             throw ActivityApi.problem(409, "CONCERN_REPLY_CLOSED");
         if (store.one(
                         "SELECT id FROM comfort_replies WHERE concern_id=? AND author_id=?",
