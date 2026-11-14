@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -35,7 +36,7 @@ class HomeService {
     }
 
     Summary home(long user) {
-        var instant = clock.instant();
+        var instant = clock.instant().truncatedTo(ChronoUnit.MICROS);
         var today = ActivityApi.day(instant);
         var nickname = store.required("SELECT nickname FROM users WHERE id=?", "USER_NOT_FOUND", user);
         var wallet = store.one("SELECT balance FROM wool_wallets WHERE user_id=?", user);

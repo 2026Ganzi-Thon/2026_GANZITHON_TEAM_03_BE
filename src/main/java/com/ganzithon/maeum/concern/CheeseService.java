@@ -39,7 +39,7 @@ class CheeseService {
     @Transactional(readOnly = true)
     Object mine(long user, int page, int size) {
         ActivityApi.page(page, size);
-        var now = clock.instant();
+        var now = ConcernRules.now(clock);
         var rows =
                 store.list(
                         "SELECT id,content,comfort_type,matures_at,opened_at,saved_at,created_at"
@@ -122,6 +122,6 @@ class CheeseService {
                         id,
                         user);
         return new SaveResult(
-                ActivityApi.sid(r.get("id")), ConcernRules.status(r, clock.instant()), null);
+                ActivityApi.sid(r.get("id")), ConcernRules.status(r, ConcernRules.now(clock)), null);
     }
 }

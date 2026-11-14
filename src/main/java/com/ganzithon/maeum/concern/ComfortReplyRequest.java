@@ -3,7 +3,7 @@ package com.ganzithon.maeum.concern;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ganzithon.maeum.global.activity.ActivityApi;
 
-/** 위로 작성 요청입니다. 검증을 마친 값만 담습니다. */
+/** 위로 작성 요청입니다. from()으로 만들 때 본문을 검증합니다. */
 record ComfortReplyRequest(String content) {
     private static final int REPLY_LIMIT = 500;
 

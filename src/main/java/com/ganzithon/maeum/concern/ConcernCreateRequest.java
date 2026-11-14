@@ -5,7 +5,7 @@ import com.ganzithon.maeum.global.activity.ActivityApi;
 
 import java.util.Set;
 
-/** 고민 작성 요청입니다. 검증을 마친 값만 담습니다. */
+/** 고민 작성 요청입니다. from()으로 만들 때 본문을 검증합니다. */
 record ConcernCreateRequest(String content, String comfortType) {
     private static final int CONTENT_LIMIT = 1000;
     private static final Set<String> COMFORT_TYPES = Set.of("EMPATHY", "EXPERIENCE", "ADVICE");

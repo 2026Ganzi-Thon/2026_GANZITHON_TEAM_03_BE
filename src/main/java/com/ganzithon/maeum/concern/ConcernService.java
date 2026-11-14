@@ -54,7 +54,7 @@ class ConcernService {
 
     @Transactional(readOnly = true)
     ListResult list(long user) {
-        var now = clock.instant();
+        var now = ConcernRules.now(clock);
         var items =
                 store
                         .list(
@@ -107,7 +107,7 @@ class ConcernService {
 
     @Transactional(readOnly = true)
     Detail detail(long user, long id) {
-        var now = clock.instant();
+        var now = ConcernRules.now(clock);
         var r =
                 store.required(
                         "SELECT * FROM concerns WHERE id=?", "CONCERN_NOT_FOUND", id);
