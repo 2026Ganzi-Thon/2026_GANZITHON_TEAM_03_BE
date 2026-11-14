@@ -42,7 +42,7 @@
 - MySQL 프로필은 Flyway로 버전별 SQL을 적용하고 Hibernate `ddl-auto=validate`로 검증합니다. 전용 빈 스키마에서 시작합니다.
 - auth 프로필에서는 쿠키 인증 API에 허용 Origin 검증을 적용하고, 나머지 `/api/v1/**`는 Access Token을 요구합니다. auth 미사용 시 기존 제한을 유지합니다.
 - JWT는 HS256, Refresh Token은 DB 해시 저장으로 구현했습니다. 실제 Google Client ID·JWT 키·Origin·약관 버전은 실행 환경에 주입합니다.
-- 빌드 CI는 아직 구성하지 않았습니다. 공통 세팅은 PR에서 검토한 뒤 팀 공통 기반으로 병합합니다.
+- GitHub Actions CI가 develop·main 대상 PR과 푸시에서 단위 테스트와 MySQL 통합 테스트를 실행합니다. 공통 세팅은 PR에서 검토한 뒤 팀 공통 기반으로 병합합니다.
 
 실제 비밀번호·JWT 키·토큰·OAuth 시크릿·감정 기록·고민 본문을 저장소·이슈·PR·로그에 넣지 않습니다.
 
