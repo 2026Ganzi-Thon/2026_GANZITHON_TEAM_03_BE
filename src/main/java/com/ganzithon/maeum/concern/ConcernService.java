@@ -94,7 +94,7 @@ class ConcernService {
                 || content.codePointCount(0, content.length()) > CONTENT_LIMIT
                 || !COMFORT_TYPES.contains(type)) throw ActivityApi.bad();
         store.lockUser(user);
-        var now = clock.instant();
+        var now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         return idem.execute(
                 user,
                 key,

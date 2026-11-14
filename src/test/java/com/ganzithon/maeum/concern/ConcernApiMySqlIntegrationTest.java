@@ -74,6 +74,18 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
     }
 
     @Test
+    void createResponseTimesMatchStoredTimes() throws Exception {
+        clock.now = Instant.parse("2026-11-10T03:00:00.123456789Z");
+        var created = create(user, "고민", "EMPATHY").get("data");
+        var detail =
+                call(200, auth(get("/api/v1/concerns/" + created.get("concernId").asText()), user))
+                        .get("data");
+        assertEquals("2026-11-10T03:00:00.123456Z", created.get("createdAt").asText());
+        assertEquals(detail.get("createdAt").asText(), created.get("createdAt").asText());
+        assertEquals(detail.get("maturesAt").asText(), created.get("maturesAt").asText());
+    }
+
+    @Test
     void createRejectsInvalidInput() throws Exception {
         String k = key();
         String[] bad = {
