@@ -90,7 +90,7 @@ public abstract class ActivityMySqlTestSupport {
         other = login();
     }
 
-    private long login() throws Exception {
+    protected long login() throws Exception {
         String email = "activity-" + UUID.randomUUID() + "@example.com";
         long id = members.createVerified(email, PASSWORD, clock.instant()).getId();
         String body =
