@@ -8,11 +8,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Instant;
 
 @Service
 @Profile("auth")
 @Transactional
 class CheeseService {
+    record MineItem(
+            String concernId,
+            String preview,
+            String comfortType,
+            String status,
+            Instant maturesAt,
+            Instant openedAt,
+            Instant createdAt) {}
+
+    record SavedItem(
+            String concernId, String preview, String comfortType, long replyCount, Instant savedAt) {}
+
+    record SaveResult(String concernId, String status, Instant savedAt) {}
+
     private final ActivityStore store;
     private final Clock clock;
 
@@ -37,20 +52,13 @@ class CheeseService {
                 rows.stream()
                         .map(
                                 r ->
-                                        ActivityApi.obj(
-                                                "concernId",
+                                        new MineItem(
                                                 ActivityApi.sid(r.get("id")),
-                                                "preview",
                                                 ConcernRules.preview(r),
-                                                "comfortType",
-                                                r.get("comfort_type"),
-                                                "status",
+                                                (String) r.get("comfort_type"),
                                                 ConcernRules.status(r, now),
-                                                "maturesAt",
                                                 ActivityApi.instant(r.get("matures_at")),
-                                                "openedAt",
                                                 ActivityApi.instant(r.get("opened_at")),
-                                                "createdAt",
                                                 ActivityApi.instant(r.get("created_at"))))
                         .toList(),
                 page,
@@ -73,23 +81,18 @@ class CheeseService {
                 rows.stream()
                         .map(
                                 r ->
-                                        ActivityApi.obj(
-                                                "concernId",
+                                        new SavedItem(
                                                 ActivityApi.sid(r.get("id")),
-                                                "preview",
                                                 ConcernRules.preview(r),
-                                                "comfortType",
-                                                r.get("comfort_type"),
-                                                "replyCount",
+                                                (String) r.get("comfort_type"),
                                                 ((Number) r.get("reply_count")).longValue(),
-                                                "savedAt",
                                                 ActivityApi.instant(r.get("saved_at"))))
                         .toList(),
                 page,
                 size);
     }
 
-    Object save(long user, long id) {
+    SaveResult save(long user, long id) {
         // UPDATE를 첫 쿼리로 실행해 동시 요청이 행 잠금에서 직렬화되게 합니다. 이미 보관된 행은 건드리지 않습니다.
         var now = ConcernRules.now(clock);
         store.update(
@@ -105,16 +108,11 @@ class CheeseService {
                         id,
                         user);
         if (r.get("saved_at") == null) throw ActivityApi.problem(409, "CONCERN_NOT_OPENED");
-        return ActivityApi.obj(
-                "concernId",
-                ActivityApi.sid(r.get("id")),
-                "status",
-                "SAVED",
-                "savedAt",
-                ActivityApi.instant(r.get("saved_at")));
+        return new SaveResult(
+                ActivityApi.sid(r.get("id")), "SAVED", ActivityApi.instant(r.get("saved_at")));
     }
 
-    Object unsave(long user, long id) {
+    SaveResult unsave(long user, long id) {
         store.update("UPDATE concerns SET saved_at=NULL WHERE id=? AND user_id=?", id, user);
         var r =
                 store.required(
@@ -123,12 +121,7 @@ class CheeseService {
                         "CONCERN_NOT_FOUND",
                         id,
                         user);
-        return ActivityApi.obj(
-                "concernId",
-                ActivityApi.sid(r.get("id")),
-                "status",
-                ConcernRules.status(r, clock.instant()),
-                "savedAt",
-                null);
+        return new SaveResult(
+                ActivityApi.sid(r.get("id")), ConcernRules.status(r, clock.instant()), null);
     }
 }

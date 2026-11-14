@@ -17,9 +17,7 @@ import java.util.*;
 @Profile("auth")
 @Transactional
 class ConcernService {
-    private static final int CONTENT_LIMIT = 1000;
     private static final int LIST_LIMIT = 100;
-    private static final Set<String> COMFORT_TYPES = Set.of("EMPATHY", "EXPERIENCE", "ADVICE");
 
     private final ActivityStore store;
     private final Clock clock;
@@ -37,8 +35,25 @@ class ConcernService {
         this.maturingHours = maturingHours;
     }
 
+    record ListItem(String concernId, String preview, String comfortType, Instant createdAt) {}
+
+    record ListResult(List<ListItem> items, int count) {}
+
+    record CreateResult(String concernId, String status, Instant maturesAt, Instant createdAt) {}
+
+    record Detail(
+            String concernId,
+            String content,
+            String comfortType,
+            Instant createdAt,
+            boolean mine,
+            String status,
+            Instant maturesAt,
+            boolean replyable,
+            boolean alreadyReplied) {}
+
     @Transactional(readOnly = true)
-    Object list(long user) {
+    ListResult list(long user) {
         var now = clock.instant();
         var items =
                 store
@@ -53,31 +68,18 @@ class ConcernService {
                                 LIST_LIMIT)
                         .stream()
                         .map(
-                                r -> {
-                                    return ActivityApi.obj(
-                                            "concernId",
-                                            ActivityApi.sid(r.get("id")),
-                                            "preview",
-                                            ConcernRules.preview(r),
-                                            "comfortType",
-                                            r.get("comfort_type"),
-                                            "createdAt",
-                                            ActivityApi.instant(r.get("created_at")));
-                                })
+                                r ->
+                                        new ListItem(
+                                                ActivityApi.sid(r.get("id")),
+                                                ConcernRules.preview(r),
+                                                (String) r.get("comfort_type"),
+                                                ActivityApi.instant(r.get("created_at"))))
                         .toList();
-        return ActivityApi.obj("items", items, "count", items.size());
+        return new ListResult(items, items.size());
     }
 
-    Idempotency.Reply create(long user, String key, JsonNode body) {
-        ActivityApi.fields(body, "content", "comfortType");
-        var c = body.get("content");
-        var t = body.get("comfortType");
-        if (c == null || !c.isTextual() || t == null || !t.isTextual()) throw ActivityApi.bad();
-        String content = c.textValue().strip();
-        String type = t.textValue();
-        if (content.isEmpty()
-                || content.codePointCount(0, content.length()) > CONTENT_LIMIT
-                || !COMFORT_TYPES.contains(type)) throw ActivityApi.bad();
+    Idempotency.Reply create(
+            long user, String key, JsonNode body, ConcernCreateRequest request) {
         store.lockUser(user);
         var now = ConcernRules.now(clock);
         return idem.execute(
@@ -95,24 +97,16 @@ class ConcernService {
                                         + " concerns(user_id,content,comfort_type,matures_at,created_at)"
                                         + " VALUES(?,?,?,?,?)",
                                     user,
-                                    content,
-                                    type,
+                                    request.content(),
+                                    request.comfortType(),
                                     ActivityApi.ts(matures),
                                     ActivityApi.ts(now));
-                    return ActivityApi.obj(
-                            "concernId",
-                            Long.toString(id),
-                            "status",
-                            "MATURING",
-                            "maturesAt",
-                            matures,
-                            "createdAt",
-                            now);
+                    return new CreateResult(Long.toString(id), "MATURING", matures, now);
                 });
     }
 
     @Transactional(readOnly = true)
-    Object detail(long user, long id) {
+    Detail detail(long user, long id) {
         var now = clock.instant();
         var r =
                 store.required(
@@ -127,24 +121,15 @@ class ConcernService {
                                         user)
                                 != null;
         String status = ConcernRules.status(r, now);
-        return ActivityApi.obj(
-                "concernId",
+        return new Detail(
                 ActivityApi.sid(r.get("id")),
-                "content",
-                r.get("content"),
-                "comfortType",
-                r.get("comfort_type"),
-                "createdAt",
+                (String) r.get("content"),
+                (String) r.get("comfort_type"),
                 ActivityApi.instant(r.get("created_at")),
-                "mine",
                 mine,
-                "status",
                 status,
-                "maturesAt",
                 mine ? ActivityApi.instant(r.get("matures_at")) : null,
-                "replyable",
                 !mine && !replied && status.equals("MATURING"),
-                "alreadyReplied",
                 replied);
     }
 

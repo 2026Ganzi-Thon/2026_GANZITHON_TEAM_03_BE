@@ -61,7 +61,7 @@ class ConcernController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestHeader("Idempotency-Key") String key,
             @RequestBody JsonNode body) {
-        return reply(service.create(user(jwt), key, body));
+        return reply(service.create(user(jwt), key, body, ConcernCreateRequest.from(body)));
     }
 
     @GetMapping("/concerns/{concernId}")
@@ -74,7 +74,8 @@ class ConcernController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String concernId,
             @RequestBody JsonNode body) {
-        return created(replyService.reply(user(jwt), ActivityApi.id(concernId), body));
+        return created(replyService.reply(
+                        user(jwt), ActivityApi.id(concernId), ComfortReplyRequest.from(body)));
     }
 
     @PostMapping("/concerns/{concernId}/open")

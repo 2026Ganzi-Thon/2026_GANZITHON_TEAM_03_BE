@@ -1,6 +1,5 @@
 package com.ganzithon.maeum.concern;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.ganzithon.maeum.global.activity.ActivityApi;
 import com.ganzithon.maeum.global.activity.ActivityStore;
 
@@ -10,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -17,7 +17,6 @@ import java.util.concurrent.ThreadLocalRandom;
 @Profile("auth")
 @Transactional
 class ComfortReplyService {
-    private static final int REPLY_LIMIT = 500;
     private static final List<String> DEFAULT_COMFORTS =
             List.of(
                     "여기까지 온 것만으로도 충분히 잘하고 있어요.",
@@ -33,13 +32,17 @@ class ComfortReplyService {
         clock = c;
     }
 
-    Object reply(long user, long id, JsonNode body) {
-        ActivityApi.fields(body, "content");
-        var c = body.get("content");
-        if (c == null || !c.isTextual()) throw ActivityApi.bad();
-        String content = c.textValue().strip();
-        if (content.isEmpty() || content.codePointCount(0, content.length()) > REPLY_LIMIT)
-            throw ActivityApi.bad();
+    record ReplyResult(String replyId, String concernId, Instant createdAt) {}
+
+    record ReceivedReply(String replyId, String content, boolean fromSystem, Instant createdAt) {}
+
+    record ReceivedReplies(
+            String concernId,
+            String status,
+            Instant openedAt,
+            List<ReceivedReply> replies) {}
+
+    ReplyResult reply(long user, long id, ComfortReplyRequest request) {
         // 공유 잠금으로 위로 저장이 끝날 때까지 개봉·삭제가 기다리게 해, 개봉 뒤에 위로가 들어오거나
         // 기본 위로와 사용자 위로가 함께 저장되지 않게 합니다.
         var concern =
@@ -66,16 +69,15 @@ class ComfortReplyService {
                                 + "created_at) VALUES(?,?,'USER',?,?)",
                             id,
                             user,
-                            content,
+                            request.content(),
                             ActivityApi.ts(now));
         } catch (DuplicateKeyException e) {
             throw ActivityApi.problem(409, "REPLY_ALREADY_EXISTS");
         }
-        return ActivityApi.obj(
-                "replyId", Long.toString(replyId), "concernId", Long.toString(id), "createdAt", now);
+        return new ReplyResult(Long.toString(replyId), Long.toString(id), now);
     }
 
-    Object open(long user, long id) {
+    ReceivedReplies open(long user, long id) {
         // 개봉 UPDATE를 첫 쿼리로 실행해 동시 요청이 행 잠금에서 직렬화되고, 이후 조회는 커밋된 결과를 보게 합니다.
         var now = ConcernRules.now(clock);
         int opened =
@@ -102,11 +104,11 @@ class ComfortReplyService {
     }
 
     @Transactional(readOnly = true)
-    Object replies(long user, long id) {
+    ReceivedReplies replies(long user, long id) {
         return received(user, id, "CONCERN_NOT_OPENED");
     }
 
-    private Object received(long user, long id, String notOpenedCode) {
+    private ReceivedReplies received(long user, long id, String notOpenedCode) {
         var r =
                 store.required(
                         "SELECT id,opened_at,saved_at FROM concerns WHERE id=? AND user_id=?",
@@ -123,24 +125,16 @@ class ComfortReplyService {
                         .stream()
                         .map(
                                 x ->
-                                        ActivityApi.obj(
-                                                "replyId",
+                                        new ReceivedReply(
                                                 ActivityApi.sid(x.get("id")),
-                                                "content",
-                                                x.get("content"),
-                                                "fromSystem",
+                                                (String) x.get("content"),
                                                 "SYSTEM".equals(x.get("source_type")),
-                                                "createdAt",
                                                 ActivityApi.instant(x.get("created_at"))))
                         .toList();
-        return ActivityApi.obj(
-                "concernId",
+        return new ReceivedReplies(
                 ActivityApi.sid(r.get("id")),
-                "status",
                 r.get("saved_at") != null ? "SAVED" : "OPENED",
-                "openedAt",
                 ActivityApi.instant(r.get("opened_at")),
-                "replies",
                 replies);
     }
 }
