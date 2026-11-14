@@ -9,13 +9,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @Profile("auth")
 @Transactional(readOnly = true)
 class HomeService {
+    record Summary(
+            String nickname,
+            int woolBalance,
+            String today,
+            TodayEmotion todayEmotion,
+            long maturedConcernCount) {}
+
+    record TodayEmotion(boolean recorded, String recordId, List<EmotionItem> emotions) {}
+
+    record EmotionItem(String emotionId, String code, String name) {}
+
     private final ActivityStore store;
     private final Clock clock;
 
@@ -24,8 +35,8 @@ class HomeService {
         this.clock = clock;
     }
 
-    Object home(long user) {
-        var instant = clock.instant();
+    Summary home(long user) {
+        var instant = clock.instant().truncatedTo(ChronoUnit.MICROS);
         var today = ActivityApi.day(instant);
         var nickname = store.required("SELECT nickname FROM users WHERE id=?", "USER_NOT_FOUND", user);
         var wallet = store.one("SELECT balance FROM wool_wallets WHERE user_id=?", user);
@@ -35,26 +46,21 @@ class HomeService {
                                 + " AND opened_at IS NULL",
                         user,
                         ActivityApi.ts(instant));
-        return ActivityApi.obj(
-                "nickname",
-                nickname.get("nickname"),
-                "woolBalance",
-                wallet == null ? 0 : wallet.get("balance"),
-                "today",
+        return new Summary(
+                (String) nickname.get("nickname"),
+                wallet == null ? 0 : ((Number) wallet.get("balance")).intValue(),
                 today.toString(),
-                "todayEmotion",
                 todayEmotion(user, today),
-                "maturedConcernCount",
                 ((Number) matured.get("c")).longValue());
     }
 
-    private Map<String, Object> todayEmotion(long user, LocalDate today) {
+    private TodayEmotion todayEmotion(long user, LocalDate today) {
         var record =
                 store.one(
                         "SELECT id FROM emotion_records WHERE user_id=? AND record_date=?",
                         user,
                         today);
-        if (record == null) return ActivityApi.obj("recorded", false, "recordId", null, "emotions", List.of());
+        if (record == null) return new TodayEmotion(false, null, List.of());
         var emotions =
                 store.list(
                                 "SELECT e.id,e.code,e.name FROM emotions e JOIN"
@@ -64,15 +70,11 @@ class HomeService {
                         .stream()
                         .map(
                                 e ->
-                                        ActivityApi.obj(
-                                                "emotionId",
+                                        new EmotionItem(
                                                 ActivityApi.sid(e.get("id")),
-                                                "code",
-                                                e.get("code"),
-                                                "name",
-                                                e.get("name")))
+                                                (String) e.get("code"),
+                                                (String) e.get("name")))
                         .toList();
-        return ActivityApi.obj(
-                "recorded", true, "recordId", ActivityApi.sid(record.get("id")), "emotions", emotions);
+        return new TodayEmotion(true, ActivityApi.sid(record.get("id")), emotions);
     }
 }

@@ -17,9 +17,16 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1")
 class ConcernController {
     private final ConcernService service;
+    private final ComfortReplyService replyService;
+    private final CheeseService cheeseService;
 
-    ConcernController(ConcernService service) {
+    ConcernController(
+            ConcernService service,
+            ComfortReplyService replyService,
+            CheeseService cheeseService) {
         this.service = service;
+        this.replyService = replyService;
+        this.cheeseService = cheeseService;
     }
 
     private long user(Jwt jwt) {
@@ -54,7 +61,7 @@ class ConcernController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestHeader("Idempotency-Key") String key,
             @RequestBody JsonNode body) {
-        return reply(service.create(user(jwt), key, body));
+        return reply(service.create(user(jwt), key, body, ConcernCreateRequest.from(body)));
     }
 
     @GetMapping("/concerns/{concernId}")
@@ -67,7 +74,8 @@ class ConcernController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String concernId,
             @RequestBody JsonNode body) {
-        return created(service.reply(user(jwt), ActivityApi.id(concernId), body));
+        return created(replyService.reply(
+                        user(jwt), ActivityApi.id(concernId), ComfortReplyRequest.from(body)));
     }
 
     @PostMapping("/concerns/{concernId}/open")
@@ -76,12 +84,12 @@ class ConcernController {
             @PathVariable String concernId,
             @RequestBody(required = false) JsonNode body) {
         ActivityApi.noBody(body);
-        return ok(service.open(user(jwt), ActivityApi.id(concernId)));
+        return ok(replyService.open(user(jwt), ActivityApi.id(concernId)));
     }
 
     @GetMapping("/concerns/{concernId}/replies")
     ResponseEntity<Object> replies(@AuthenticationPrincipal Jwt jwt, @PathVariable String concernId) {
-        return ok(service.replies(user(jwt), ActivityApi.id(concernId)));
+        return ok(replyService.replies(user(jwt), ActivityApi.id(concernId)));
     }
 
     @GetMapping("/users/me/concerns")
@@ -89,7 +97,7 @@ class ConcernController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ok(service.mine(user(jwt), page, size));
+        return ok(cheeseService.mine(user(jwt), page, size));
     }
 
     @GetMapping("/users/me/saved-concerns")
@@ -97,7 +105,7 @@ class ConcernController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ok(service.saved(user(jwt), page, size));
+        return ok(cheeseService.saved(user(jwt), page, size));
     }
 
     @PatchMapping("/concerns/{concernId}/save")
@@ -106,7 +114,7 @@ class ConcernController {
             @PathVariable String concernId,
             @RequestBody(required = false) JsonNode body) {
         ActivityApi.noBody(body);
-        return ok(service.save(user(jwt), ActivityApi.id(concernId)));
+        return ok(cheeseService.save(user(jwt), ActivityApi.id(concernId)));
     }
 
     @PatchMapping("/concerns/{concernId}/unsave")
@@ -115,7 +123,7 @@ class ConcernController {
             @PathVariable String concernId,
             @RequestBody(required = false) JsonNode body) {
         ActivityApi.noBody(body);
-        return ok(service.unsave(user(jwt), ActivityApi.id(concernId)));
+        return ok(cheeseService.unsave(user(jwt), ActivityApi.id(concernId)));
     }
 
     @DeleteMapping("/concerns/{concernId}")
