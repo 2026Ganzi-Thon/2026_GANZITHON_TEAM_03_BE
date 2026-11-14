@@ -79,4 +79,48 @@ class ConcernController {
     ResponseEntity<Object> replies(@AuthenticationPrincipal Jwt jwt, @PathVariable String concernId) {
         return ok(service.replies(user(jwt), ActivityApi.id(concernId)));
     }
+
+    @GetMapping("/users/me/concerns")
+    ResponseEntity<Object> mine(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ok(service.mine(user(jwt), page, size));
+    }
+
+    @GetMapping("/users/me/saved-concerns")
+    ResponseEntity<Object> saved(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ok(service.saved(user(jwt), page, size));
+    }
+
+    @PatchMapping("/concerns/{concernId}/save")
+    ResponseEntity<Object> save(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String concernId,
+            @RequestBody(required = false) JsonNode body) {
+        ActivityApi.noBody(body);
+        return ok(service.save(user(jwt), ActivityApi.id(concernId)));
+    }
+
+    @PatchMapping("/concerns/{concernId}/unsave")
+    ResponseEntity<Object> unsave(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String concernId,
+            @RequestBody(required = false) JsonNode body) {
+        ActivityApi.noBody(body);
+        return ok(service.unsave(user(jwt), ActivityApi.id(concernId)));
+    }
+
+    @DeleteMapping("/concerns/{concernId}")
+    ResponseEntity<Void> delete(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String concernId,
+            @RequestBody(required = false) JsonNode body) {
+        ActivityApi.noBody(body);
+        service.delete(user(jwt), ActivityApi.id(concernId));
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+    }
 }
