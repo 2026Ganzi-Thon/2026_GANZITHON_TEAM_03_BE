@@ -16,5 +16,5 @@ spring:
 app:
   verification:
     from: ${MAIL_FROM}
-    frontend-url: ${EMAIL_VERIFICATION_FRONTEND_URL}
-    password-reset-frontend-url: ${PASSWORD_RESET_FRONTEND_URL:}
+    frontend-url: ${EMAIL_VERIFICATION_FRONTEND_URL:${FRONTEND_ORIGIN:}/verify-email}
+    password-reset-frontend-url: ${PASSWORD_RESET_FRONTEND_URL:${FRONTEND_ORIGIN:}/reset-password}
