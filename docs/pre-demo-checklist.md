@@ -14,17 +14,22 @@
 | 환경변수/설정 | 입력 내용 | 비고 |
 | --- | --- | --- |
 | `SPRING_PROFILES_ACTIVE` | `mysql,auth,smtp` | bootstrap은 DB 없는 기동 확인 전용 |
+| `FRONTEND_ORIGIN` | 시연용 프론트 HTTPS 주소, 끝에 `/` 없이 입력 | CORS와 두 인증 메일 링크의 기본 주소 |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | 시연 DB 접속 정보 | 개발·테스트 DB와 구분 |
 | `SMTP_HOST` | 발송 서비스 SMTP 호스트 | Gmail 선택 시 smtp.gmail.com |
 | `SMTP_PORT` | STARTTLS 지원 포트 | 기본 587. 현재 설정은 STARTTLS 방식 |
 | `SMTP_USERNAME` | 발신 계정의 인증 ID | 서비스별 안내 확인 |
 | `SMTP_PASSWORD` | 앱 비밀번호 또는 SMTP 전용 자격증명 | 채팅·Git·공유 XML에 입력하지 않음 |
 | `MAIL_FROM` | 발송 서비스가 허용하는 발신 이메일 | 임의 주소 사용 금지 |
-| `EMAIL_VERIFICATION_FRONTEND_URL` | HTTPS 인증 확인 화면의 전체 주소 | 예: https://실제주소/verify-email. 쿼리·fragment 없이 지정 |
-| `PASSWORD_RESET_FRONTEND_URL` | HTTPS 새 비밀번호 입력 화면의 전체 주소 | 예: https://실제주소/reset-password. 쿼리·fragment 없이 지정 |
+| `EMAIL_VERIFICATION_FRONTEND_URL` | 기본 경로 `/verify-email`과 다를 때 지정하는 전체 HTTPS 주소 | 쿼리·fragment 없이 지정 |
+| `PASSWORD_RESET_FRONTEND_URL` | 기본 경로 `/reset-password`와 다를 때 지정하는 전체 HTTPS 주소 | 쿼리·fragment 없이 지정 |
 | `EMAIL_VERIFICATION_IP_MAX_PER_MINUTE` | 같은 IP의 가입 인증·재설정 메일 요청 합산 상한 | 기본 30회. 현장 공용 Wi-Fi/NAT·프록시 구성에 맞춰 조정 |
 
 환경변수는 배포 서비스의 비밀값 설정 또는 IntelliJ 실행 구성으로 주입합니다. `.env.example`은 안내용이며 Spring Boot가 `.env`를 자동으로 읽지 않습니다. 비밀값을 보내주실 필요는 없습니다.
+
+로컬에서는 `FRONTEND_ORIGIN=http://localhost:5173`처럼 실제 프론트 주소를 넣어 연동합니다. 배포 시 프론트의 API 기본 주소에는 백엔드 HTTPS 주소를 설정합니다. 백엔드에는 별도 공개 API 주소 환경변수가 필요하지 않습니다.
+
+`FRONTEND_ORIGIN`만으로 기본값을 쓰려면 `CORS_ALLOWED_ORIGINS`, `EMAIL_VERIFICATION_FRONTEND_URL`, `PASSWORD_RESET_FRONTEND_URL`을 설정하지 않습니다. 이미 등록된 개별 값은 우선 적용되므로 배포 전에 확인합니다.
 
 ### Gmail로 발송할 경우
 
@@ -45,7 +50,7 @@
 - [ ] 확인 동작에서 `POST /api/v1/auth/email-verifications/confirm`에 JSON `{ "token": "..." }` 전달
 - [ ] 성공 응답의 `signupVerificationToken`을 메모리에 보관하여 `POST /api/v1/auth/signup`에 전달
 - [ ] 400·409·410·429·503 응답에 대한 안내·재발송 경로 구현
-- [ ] 프론트·백엔드가 다른 Origin이면 실제 허용 Origin에 맞춘 CORS 설정 확정. `CORS_ALLOWED_ORIGINS`에 정확한 프론트 Origin을 지정하며 와일드카드를 사용하지 않음
+- [ ] `FRONTEND_ORIGIN`에 정확한 프론트 Origin을 지정. 여러 주소가 필요하면 `CORS_ALLOWED_ORIGINS`에 쉼표로 구분해 지정
 
 ## 시연 전 실제 동작 확인 — 미완료
 
@@ -65,7 +70,7 @@
 | `SPRING_PROFILES_ACTIVE` | `mysql,auth`, 이메일 발송도 사용하면 `mysql,auth,smtp` |
 | `GOOGLE_CLIENT_ID` | Google Cloud의 웹 애플리케이션 Client ID. 프론트와 서버가 같은 값 사용 |
 | `JWT_SECRET_BASE64` | 32바이트 이상 무작위 키의 Base64 값. `openssl rand -base64 32`로 생성 후 비밀값 설정에 저장. 채팅·Git에 공유 금지 |
-| `CORS_ALLOWED_ORIGINS` | 실제 프론트 Origin. 예: `https://app.example.com` (끝 `/` 없음). 여러 개는 쉼표 구분 |
+| `CORS_ALLOWED_ORIGINS` | 여러 프론트 Origin이 필요한 경우에만 쉼표로 구분해 지정. 기본값은 `FRONTEND_ORIGIN` |
 | `AUTH_COOKIE_SAME_SITE` | 같은 site 배포는 `Lax`, 다른 site는 `None` 검토. Secure는 항상 적용. Origin과 site는 다른 개념 |
 | `TERMS_VERSION`, `PRIVACY_VERSION`, `MARKETING_VERSION` | 프론트에 표시한 각 문서의 실제 버전. 테스트용 v1을 무심코 사용하지 않음 |
 
