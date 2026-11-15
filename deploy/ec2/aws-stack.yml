@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Maeum demo backend deployment roles, artifact bucket and SSM command.
+Parameters:
+  InstanceId:
+    Type: AWS::EC2::Instance::Id
+Resources:
+  Artifacts:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireBuilds
+            Status: Enabled
+            Prefix: backend/
+            ExpirationInDays: 14
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: ReadArtifacts
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub ${Artifacts.Arn}/backend/*
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref InstanceRole]
+  GitHubProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+  DeployDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      Name: MaeumDeployBackend
+      DocumentType: Command
+      Content:
+        schemaVersion: '2.2'
+        description: Deploy a verified Maeum backend JAR to the demo instance.
+        parameters:
+          release:
+            type: String
+            allowedPattern: '^[0-9a-f]{40}$'
+          checksum:
+            type: String
+            allowedPattern: '^[0-9a-f]{64}$'
+        mainSteps:
+          - action: aws:runShellScript
+            name: deployBackend
+            inputs:
+              timeoutSeconds: '300'
+              runCommand:
+                - '/usr/local/sbin/maeum-deploy {{ release }} {{ checksum }}'
+  GitHubRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: 'repo:2026Ganzi-Thon/2026_GANZITHON_TEAM_03_BE:ref:refs/heads/develop'
+      Policies:
+        - PolicyName: DeployDemoBackend
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub ${Artifacts.Arn}/backend/*
+              - Effect: Allow
+                Action: ssm:SendCommand
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:document/${DeployDocument}
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${InstanceId}
+              - Effect: Allow
+                Action: ssm:GetCommandInvocation
+                Resource: '*'
+Outputs:
+  DemoDeployBucket:
+    Value: !Ref Artifacts
+  DemoAwsRoleArn:
+    Value: !GetAtt GitHubRole.Arn
+  DemoEc2InstanceProfile:
+    Value: !Ref InstanceProfile
