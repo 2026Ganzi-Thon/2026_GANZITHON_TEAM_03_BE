@@ -18,6 +18,7 @@ import java.util.List;
 class CheeseService {
     record MineItem(
             String concernId,
+            String title,
             String preview,
             ComfortType comfortType,
             ConcernStatus status,
@@ -27,6 +28,7 @@ class CheeseService {
 
     record SavedItem(
             String concernId,
+            String title,
             String preview,
             ComfortType comfortType,
             long replyCount,
@@ -60,6 +62,7 @@ class CheeseService {
                                 c ->
                                         new MineItem(
                                                 c.getId().toString(),
+                                                c.getTitle(),
                                                 c.preview(),
                                                 c.getComfortType(),
                                                 c.statusAt(now),
@@ -77,6 +80,7 @@ class CheeseService {
                                 row ->
                                         new SavedItem(
                                                 row.concern().getId().toString(),
+                                                row.concern().getTitle(),
                                                 row.concern().preview(),
                                                 row.concern().getComfortType(),
                                                 row.replyCount(),
