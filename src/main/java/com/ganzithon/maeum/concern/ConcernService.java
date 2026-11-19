@@ -24,7 +24,7 @@ class ConcernService {
     private final UserRepository users;
     private final Clock clock;
     private final Idempotency idem;
-    private final long maturingHours;
+    private final long maturingMinutes;
 
     ConcernService(
             ConcernRepository concerns,
@@ -32,13 +32,13 @@ class ConcernService {
             UserRepository users,
             Clock c,
             Idempotency i,
-            @Value("${app.activity.concern-maturing-hours:24}") long maturingHours) {
+            @Value("${app.activity.concern-maturing-minutes:10}") long maturingMinutes) {
         this.concerns = concerns;
         this.replies = replies;
         this.users = users;
         clock = c;
         idem = i;
-        this.maturingHours = maturingHours;
+        this.maturingMinutes = maturingMinutes;
     }
 
     record ListItem(
@@ -95,7 +95,7 @@ class ConcernService {
                 now,
                 201,
                 () -> {
-                    var matures = now.plus(Duration.ofHours(maturingHours));
+                    var matures = now.plus(Duration.ofMinutes(maturingMinutes));
                     var concern =
                             concerns.save(
                                     new Concern(
