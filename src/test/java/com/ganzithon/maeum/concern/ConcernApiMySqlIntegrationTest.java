@@ -117,7 +117,7 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
     @Test
     void createRejectsInvalidTitle() throws Exception {
         String[] bad = {
-            "{\"title\":null,\"content\":\"고민\",\"comfortType\":\"EMPATHY\"}",
+            "{\"title\":\"첫 줄\\n둘째 줄\",\"content\":\"고민\",\"comfortType\":\"EMPATHY\"}",
             "{\"title\":123,\"content\":\"고민\",\"comfortType\":\"EMPATHY\"}",
             "{\"title\":[\"제목\"],\"content\":\"고민\",\"comfortType\":\"EMPATHY\"}",
             body("", "고민", "EMPATHY"),
@@ -144,9 +144,10 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
     void createWithoutTitleUsesFirstLineOfContent() throws Exception {
         String[] bodies = {
             "{\"content\":\"  첫 줄 제목  \\n둘째 줄\",\"comfortType\":\"EMPATHY\"}",
-            "{\"content\":\"" + "가".repeat(60) + "\",\"comfortType\":\"EMPATHY\"}"
+            "{\"content\":\"" + "가".repeat(60) + "\",\"comfortType\":\"EMPATHY\"}",
+            "{\"title\":null,\"content\":\"캐리지\\t리턴\\r다음 줄\",\"comfortType\":\"EMPATHY\"}"
         };
-        String[] titles = {"첫 줄 제목", "가".repeat(50)};
+        String[] titles = {"첫 줄 제목", "가".repeat(50), "캐리지 리턴"};
         for (int i = 0; i < bodies.length; i++) {
             var created =
                     call(
