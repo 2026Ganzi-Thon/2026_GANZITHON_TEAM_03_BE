@@ -42,6 +42,8 @@ class CareService {
                                                 ActivityApi.sid(r.get("id")),
                                                 "name",
                                                 r.get("name"),
+                                                "category",
+                                                r.get("category"),
                                                 "description",
                                                 r.get("description"),
                                                 "rewardAmount",

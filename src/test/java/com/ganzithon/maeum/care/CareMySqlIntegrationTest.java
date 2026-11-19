@@ -1,5 +1,6 @@
 package com.ganzithon.maeum.care;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
@@ -27,7 +28,8 @@ class CareMySqlIntegrationTest extends ActivityMySqlTestSupport {
     void masterData() {
         db.update(
                 "INSERT INTO care_actions(id,name,description,reward_amount,display_order,active)"
-                        + " VALUES(1,'물 마시기','물 한 잔',10,1,true),(2,'쉬기',NULL,5,2,true)");
+                        + " VALUES(92001,'물 마시기','물 한 잔',10,1,true),(92002,'쉬기',NULL,5,2,true)");
+        db.update("UPDATE care_actions SET category='움직이기' WHERE id=92001");
     }
 
     @AfterEach
@@ -42,7 +44,26 @@ class CareMySqlIntegrationTest extends ActivityMySqlTestSupport {
                 "care_completions",
                 "wool_wallets",
                 "api_idempotency_requests");
-        db.update("DELETE FROM care_actions WHERE id IN (1,2)");
+        db.update("DELETE FROM care_actions WHERE id IN (92001,92002)");
+    }
+
+    @Test
+    void returnsCategoriesAndFallbackWithoutChangingRewardFields() throws Exception {
+        var items = call(200, auth(get("/api/v1/care-actions"), user)).at("/data/items");
+        for (var item : items) {
+            switch (item.get("careActionId").asText()) {
+                case "92001" -> {
+                    assertEquals("움직이기", item.get("category").asText());
+                    assertEquals(10, item.get("rewardAmount").asInt());
+                    assertEquals("물 한 잔", item.get("description").asText());
+                }
+                case "92002" -> assertEquals("기타", item.get("category").asText());
+                default -> assertFalse(item.get("category").asText().isBlank());
+            }
+        }
+        assertThat(items.findValuesAsText("careActionId")).contains("92001", "92002");
+        assertThat(items.findValuesAsText("category"))
+                .contains("움직이기", "마음돌봄", "쉬어가기", "일상가꾸기", "기타");
     }
 
     @Test
@@ -51,7 +72,7 @@ class CareMySqlIntegrationTest extends ActivityMySqlTestSupport {
         call(
                 200,
                 auth(
-                        post("/api/v1/care-actions/1/completions")
+                        post("/api/v1/care-actions/92001/completions")
                                 .header("Idempotency-Key", sameKey),
                         user));
         assertEquals(
@@ -59,24 +80,29 @@ class CareMySqlIntegrationTest extends ActivityMySqlTestSupport {
                 call(
                                 409,
                                 auth(
-                                        post("/api/v1/care-actions/2/completions")
+                                        post("/api/v1/care-actions/92002/completions")
                                                 .header("Idempotency-Key", sameKey),
                                         user))
                         .get("code")
                         .asText());
-        call(400, auth(post("/api/v1/care-actions/2/completions"), user));
+        call(400, auth(post("/api/v1/care-actions/92002/completions"), user));
         call(
                 400,
                 auth(
-                        json(post("/api/v1/care-actions/2/completions"), "{\"rewardAmount\":10000}")
+                        json(
+                                        post("/api/v1/care-actions/92002/completions"),
+                                        "{\"rewardAmount\":10000}")
                                 .header("Idempotency-Key", key()),
                         user));
     }
 
     @Test
     void woolCycleIdempotencyAndOriginalReward() throws Exception {
-        assertEquals(
-                2, call(200, auth(get("/api/v1/care-actions"), user)).at("/data/items").size());
+        assertThat(
+                        call(200, auth(get("/api/v1/care-actions"), user))
+                                .at("/data/items")
+                                .findValuesAsText("careActionId"))
+                .contains("92001", "92002");
         assertTrue(
                 call(200, auth(get("/api/v1/wool-wallet"), user)).at("/data/updatedAt").isNull());
         String k = key();
@@ -84,7 +110,7 @@ class CareMySqlIntegrationTest extends ActivityMySqlTestSupport {
                 call(
                         200,
                         auth(
-                                post("/api/v1/care-actions/1/completions")
+                                post("/api/v1/care-actions/92001/completions")
                                         .header("Idempotency-Key", k),
                                 user));
         assertEquals(
@@ -92,13 +118,14 @@ class CareMySqlIntegrationTest extends ActivityMySqlTestSupport {
                 call(
                         200,
                         auth(
-                                post("/api/v1/care-actions/1/completions")
+                                post("/api/v1/care-actions/92001/completions")
                                         .header("Idempotency-Key", k),
                                 user)));
         call(
                 409,
                 auth(
-                        post("/api/v1/care-actions/1/completions").header("Idempotency-Key", key()),
+                        post("/api/v1/care-actions/92001/completions")
+                                .header("Idempotency-Key", key()),
                         user));
         String id = r.at("/data/completion/completionId").asText(),
                 tx = r.at("/data/completion/earningTransactionId").asText();
@@ -107,7 +134,7 @@ class CareMySqlIntegrationTest extends ActivityMySqlTestSupport {
                 call(200, auth(get("/api/v1/care-completions/today"), user))
                         .at("/data/items")
                         .size());
-        db.update("UPDATE care_actions SET reward_amount=20 WHERE id=1");
+        db.update("UPDATE care_actions SET reward_amount=20 WHERE id=92001");
         String cancelKey = key(), body = "{\"earningTransactionId\":\"" + tx + "\"}";
         var cancelled =
                 call(
@@ -120,7 +147,8 @@ class CareMySqlIntegrationTest extends ActivityMySqlTestSupport {
         call(
                 200,
                 auth(
-                        post("/api/v1/care-actions/1/completions").header("Idempotency-Key", key()),
+                        post("/api/v1/care-actions/92001/completions")
+                                .header("Idempotency-Key", key()),
                         user));
         assertEquals(
                 cancelled,
@@ -168,7 +196,7 @@ class CareMySqlIntegrationTest extends ActivityMySqlTestSupport {
         var r =
                 call(
                         200,
-                        post("/api/v1/care-actions/1/completions")
+                        post("/api/v1/care-actions/92001/completions")
                                 .header("Idempotency-Key", key())
                                 .header("Authorization", authorization));
         String id = r.at("/data/completion/completionId").asText(),
@@ -215,7 +243,7 @@ class CareMySqlIntegrationTest extends ActivityMySqlTestSupport {
                                 call(
                                         200,
                                         auth(
-                                                post("/api/v1/care-actions/1/completions")
+                                                post("/api/v1/care-actions/92001/completions")
                                                         .header("Idempotency-Key", sameKey),
                                                 user)));
             var results = pool.invokeAll(jobs);

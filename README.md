@@ -62,3 +62,4 @@ AGENTS.md는 요청에 따라 이번 구성에 포함하지 않습니다.
 - [이메일 인증 API와 발송 방식](docs/email-verification.md)
 
 - [Google 로그인 API·토큰·프론트 연동](docs/google-login.md)
+- [돌봄 기본 데이터와 분류 API](docs/care-catalog.md)
