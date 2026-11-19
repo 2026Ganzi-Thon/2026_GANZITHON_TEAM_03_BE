@@ -13,13 +13,14 @@ class OpenApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
     void apiDocsAndSwaggerUiAreOpenWithoutLogin() throws Exception {
         var docs = mvc.perform(get("/v3/api-docs")).andReturn().getResponse();
         assertEquals(200, docs.getStatus());
-        var paths = mapper.readTree(docs.getContentAsByteArray()).get("paths");
+        var root = mapper.readTree(docs.getContentAsByteArray());
+        var paths = root.get("paths");
         assertTrue(paths.has("/api/v1/concerns"));
         assertTrue(paths.has("/api/v1/island/items"));
-        assertTrue(
-                mapper.readTree(docs.getContentAsByteArray())
-                        .at("/components/securitySchemes/bearerAuth")
-                        .has("scheme"));
+        assertTrue(root.at("/components/securitySchemes/bearerAuth").has("scheme"));
+        assertEquals("/", root.at("/servers/0/url").asText());
+        assertEquals("bearerAuth", root.at("/paths/~1api~1v1~1concerns/get/security/0").fieldNames().next());
+        assertTrue(root.at("/paths/~1api~1v1~1auth~1login/post/security").isMissingNode());
         assertEquals(200, mvc.perform(get("/swagger-ui/index.html")).andReturn().getResponse().getStatus());
     }
 
