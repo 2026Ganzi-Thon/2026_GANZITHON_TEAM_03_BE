@@ -13,7 +13,7 @@ public class AuthCookies {
     public AuthCookies(AuthSettings settings) { this.settings = settings; }
     public String refresh(String value) { return cookie(REFRESH, value, "/api/v1/auth", 1209600); }
     public String clearRefresh() { return cookie(REFRESH, "", "/api/v1/auth", 0); }
-    public String challenge(String value) { return cookie(CHALLENGE, value, "/api/v1/auth/google", 300); }
+    public String challenge(String value) { return cookie(CHALLENGE, value, "/api/v1/auth/google", AuthSettings.GOOGLE_CHALLENGE_TTL_SECONDS); }
     public String clearChallenge() { return cookie(CHALLENGE, "", "/api/v1/auth/google", 0); }
     private String cookie(String name, String value, String path, long maxAge) {
         return ResponseCookie.from(name, value).httpOnly(true).secure(true).sameSite(settings.cookieSameSite())

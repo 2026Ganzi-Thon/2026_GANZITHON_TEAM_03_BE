@@ -7,6 +7,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("app.auth")
 public record AuthSettings(String jwtSecretBase64, String googleClientId, List<String> allowedOrigins,
         String cookieSameSite, String termsVersion, String privacyVersion, String marketingVersion) {
+    public static final int GOOGLE_CHALLENGE_TTL_SECONDS = 15 * 60;
+
     public AuthSettings {
         if (googleClientId == null || googleClientId.isBlank() || allowedOrigins == null || allowedOrigins.isEmpty()
                 || termsVersion == null || termsVersion.isBlank() || privacyVersion == null || privacyVersion.isBlank()

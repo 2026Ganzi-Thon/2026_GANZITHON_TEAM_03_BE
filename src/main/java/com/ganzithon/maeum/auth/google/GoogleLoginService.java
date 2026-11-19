@@ -30,7 +30,7 @@ public class GoogleLoginService {
     public String challenge() {
         String nonce = random.issue();
         jdbc.update("INSERT INTO google_login_challenges(token_hash,expires_at) VALUES (?,?)",
-                random.hash(nonce), utc(clock.instant().plusSeconds(300)));
+                random.hash(nonce), utc(clock.instant().plusSeconds(AuthSettings.GOOGLE_CHALLENGE_TTL_SECONDS)));
         return nonce;
     }
 

@@ -24,7 +24,7 @@ public class GoogleAuthController {
     public ResponseEntity<?> challenge() {
         String nonce = google.challenge();
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header(HttpHeaders.SET_COOKIE, cookies.challenge(nonce))
-                .body(new ApiResponse<>(Map.of("nonce", nonce, "expiresIn", 300)));
+                .body(new ApiResponse<>(Map.of("nonce", nonce, "expiresIn", AuthSettings.GOOGLE_CHALLENGE_TTL_SECONDS)));
     }
     @PostMapping("/google")
     public ResponseEntity<?> google(@Valid @RequestBody GoogleRequest request,
