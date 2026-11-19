@@ -54,7 +54,8 @@ class GoogleAuthMySqlIntegrationTest {
     String nonce() throws Exception {
         var response = mvc.perform(post("/api/v1/auth/google/challenges").header("Origin", ORIGIN))
                 .andExpect(status().isOk()).andReturn().getResponse();
-        assertThat(response.getHeader("Set-Cookie")).contains("HttpOnly", "Secure", "SameSite=Lax");
+        assertThat(response.getHeader("Set-Cookie")).contains("HttpOnly", "Secure", "SameSite=Lax", "Max-Age=900");
+        assertThat(mapper.readTree(response.getContentAsString()).at("/data/expiresIn").asInt()).isEqualTo(900);
         return mapper.readTree(response.getContentAsString()).at("/data/nonce").asText();
     }
     MvcResult login(String nonce, boolean consent) throws Exception {
@@ -169,8 +170,14 @@ class GoogleAuthMySqlIntegrationTest {
         mvc.perform(get("/api/v1/auth/test-probe").header("Authorization", "Bearer garbage")).andExpect(status().isUnauthorized());
         assertThat(count("auth_sessions")).isZero();
     }
+    @Test void consentRetrySucceedsJustBeforeFifteenMinutes() throws Exception {
+        String challenge = nonce();
+        assertThat(login(challenge, false).getResponse().getStatus()).isEqualTo(409);
+        clock.now = clock.now.plusSeconds(899);
+        assertThat(login(challenge, true).getResponse().getStatus()).isEqualTo(201);
+    }
     @Test void expiredChallengeAndOutdatedConsentAreRejectedWithoutMemberCreation() throws Exception {
-        String challenge = nonce(); clock.now = clock.now.plusSeconds(300);
+        String challenge = nonce(); clock.now = clock.now.plusSeconds(900);
         assertThat(login(challenge, true).getResponse().getStatus()).isEqualTo(401);
         mvc.perform(post("/api/v1/auth/google").header("Origin", ORIGIN).cookie(new Cookie(AuthCookies.CHALLENGE, nonce()))
                 .contentType("application/json").content("{\"credential\":\"token\",\"termsAgreed\":true,\"termsVersion\":\"old\",\"privacyAgreed\":true,\"privacyVersion\":\"v1\"}"))

@@ -12,7 +12,7 @@ GIS JavaScript callback의 ID Token을 서버가 Google 공개키로 검증합�
 
 | 순서 | Method·Path | 요청·응답 |
 | --- | --- | --- |
-| 1 | `POST /api/v1/auth/google/challenges` | 본문 없음. 200 `data: {nonce, expiresIn: 300}`. 로그인 challenge 쿠키 발급 |
+| 1 | `POST /api/v1/auth/google/challenges` | 본문 없음. 200 `data: {nonce, expiresIn: 900}`. 로그인 challenge 쿠키 발급 |
 | 2 | Google Identity Services 초기화 | 같은 Client ID와 위 `nonce`를 설정. JS callback으로 ID Token 수신 |
 | 3 | `POST /api/v1/auth/google` | 아래 JSON. 기존 회원 200, 신규 회원 201. Refresh 쿠키 설정 및 challenge 쿠키 삭제 |
 | 4 | `POST /api/v1/auth/refresh` | 본문 없음. Refresh 쿠키로 재발급. 200 `data: {accessToken, tokenType: "Bearer", expiresIn: 3600}` |
@@ -58,7 +58,7 @@ Google ID Token은 서비스 Access Token으로 사용할 수 없습니다. 로�
 ## 검증·보관 정책
 
 - Google 서명, 발급자, Client ID 대상, 만료, 발급 시각, 검증된 이메일, nonce 연결을 확인합니다. 이메일은 연락용이며 계정 통합·일반 로그인 권한의 근거가 아닙니다.
-- challenge는 5분·일회용이며 DB에는 해시만 저장합니다. 성공한 로그인에서만 소비합니다. 발급 요청마다 새 challenge 쿠키로 교체됩니다.
+- challenge는 15분·일회용이며 DB에는 해시만 저장합니다. 성공한 로그인에서만 소비합니다. 발급 요청마다 새 challenge 쿠키로 교체됩니다.
 - 로그인·쿠키 동작은 서버의 정확한 Origin 허용 목록으로 보호합니다. GIS redirect POST를 직접 받는 구현이 아닙니다.
 - 서비스 Access Token은 HS256, 1시간입니다. 발급자·대상·용도·만료·세션 폐기 상태를 검증합니다.
 - Refresh Token은 32바이트 난수, DB에는 SHA-256 해시만 저장합니다. 매 발급 시점부터 14일이며 회전할 때마다 만료를 갱신합니다.
