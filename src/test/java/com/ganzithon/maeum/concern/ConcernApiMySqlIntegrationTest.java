@@ -78,7 +78,7 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         var r = create(user, "  취업 준비가 길어져요  ", "EMPATHY");
         assertEquals("MATURING", r.at("/data/status").asText());
         assertEquals("2026-11-10T03:00:00Z", r.at("/data/createdAt").asText());
-        assertEquals("2026-11-11T03:00:00Z", r.at("/data/maturesAt").asText());
+        assertEquals("2026-11-10T03:10:00Z", r.at("/data/maturesAt").asText());
         assertTrue(r.at("/data/concernId").isTextual());
         assertEquals(4, r.get("data").size());
         assertEquals(
