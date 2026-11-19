@@ -78,7 +78,7 @@ class IslandApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         var olive = item(data, "1");
         assertEquals("올리브 나무", olive.get("name").asText());
         assertEquals("PLANT", olive.get("category").asText());
-        assertEquals(12, olive.get("price").asInt());
+        assertEquals(1, olive.get("price").asInt());
         assertEquals(2, olive.get("placedOrder").asInt());
         assertTrue(olive.get("floatAt").isNull());
         var boat = item(data, "11");
@@ -98,43 +98,43 @@ class IslandApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
     void purchaseSpendsWoolRecordsTransactionAndMarksOwned() throws Exception {
         wallet(user, 30);
         var r = call(201, buy("2", key(), user));
-        assertEquals(6, r.at("/data/woolBalance").asInt());
+        assertEquals(29, r.at("/data/woolBalance").asInt());
         assertEquals("2", r.at("/data/item/itemId").asText());
         assertTrue(r.at("/data/item/owned").asBoolean());
-        assertEquals(24, r.at("/data/item/price").asInt());
-        assertEquals(6, balance(user));
+        assertEquals(1, r.at("/data/item/price").asInt());
+        assertEquals(29, balance(user));
         var t =
                 db.queryForMap(
                         "SELECT * FROM wool_transactions WHERE user_id=?", user);
         assertEquals("SPEND", t.get("transaction_type"));
-        assertEquals(-24, ((Number) t.get("amount")).intValue());
+        assertEquals(-1, ((Number) t.get("amount")).intValue());
         assertNull(t.get("care_completion_id"));
         var p = db.queryForMap("SELECT * FROM island_purchases WHERE user_id=?", user);
         assertEquals(2L, ((Number) p.get("item_id")).longValue());
-        assertEquals(24, ((Number) p.get("price")).intValue());
+        assertEquals(1, ((Number) p.get("price")).intValue());
         assertEquals(t.get("id"), p.get("wool_transaction_id"));
         var data = items(user);
-        assertEquals(6, data.get("woolBalance").asInt());
+        assertEquals(29, data.get("woolBalance").asInt());
         assertTrue(item(data, "2").get("owned").asBoolean());
         assertFalse(item(data, "1").get("owned").asBoolean());
         var tx = call(200, auth(get("/api/v1/wool-transactions"), user)).at("/data/items/0");
         assertEquals("SPEND", tx.get("transactionType").asText());
-        assertEquals(-24, tx.get("amount").asInt());
+        assertEquals(-1, tx.get("amount").asInt());
     }
 
     @Test
     void purchaseWithExactBalanceLeavesZero() throws Exception {
-        wallet(user, 12);
+        wallet(user, 1);
         assertEquals(0, call(201, buy("1", key(), user)).at("/data/woolBalance").asInt());
         assertEquals(0, balance(user));
     }
 
     @Test
     void insufficientBalanceConflictsWithoutSpending() throws Exception {
-        wallet(user, 23);
+        wallet(user, 0);
         assertEquals(
                 "WOOL_BALANCE_INSUFFICIENT", call(409, buy("2", key(), user)).get("code").asText());
-        assertEquals(23, balance(user));
+        assertEquals(0, balance(user));
         assertEquals(0, count("wool_transactions", user));
         assertEquals(0, count("island_purchases", user));
         assertEquals(0, count("api_idempotency_requests", user));
@@ -154,7 +154,7 @@ class IslandApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         call(201, buy("1", key(), user));
         assertEquals(
                 "ISLAND_ITEM_ALREADY_OWNED", call(409, buy("1", key(), user)).get("code").asText());
-        assertEquals(88, balance(user));
+        assertEquals(99, balance(user));
         assertEquals(1, count("wool_transactions", user));
         assertEquals(1, count("island_purchases", user));
     }
@@ -191,7 +191,7 @@ class IslandApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         clock.now = clock.now.plusSeconds(60);
         var second = call(201, buy("1", k, user));
         assertEquals(first, second);
-        assertEquals(88, balance(user));
+        assertEquals(99, balance(user));
         assertEquals(1, count("wool_transactions", user));
     }
 
@@ -202,7 +202,7 @@ class IslandApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         call(201, buy("1", k, user));
         assertEquals(
                 "COMMON_IDEMPOTENCY_CONFLICT", call(409, buy("2", k, user)).get("code").asText());
-        assertEquals(88, balance(user));
+        assertEquals(99, balance(user));
         assertEquals(1, count("island_purchases", user));
     }
 
@@ -217,8 +217,8 @@ class IslandApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         assertFalse(item(theirs, "1").get("owned").asBoolean());
         assertEquals(50, theirs.get("woolBalance").asInt());
         call(201, buy("1", key(), other));
-        assertEquals(38, balance(other));
-        assertEquals(88, balance(user));
+        assertEquals(49, balance(other));
+        assertEquals(99, balance(user));
     }
 
     @Test
@@ -227,7 +227,7 @@ class IslandApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         var statuses = run(user, List.of("1", "1", "1", "1", "1", "1"), false);
         assertEquals(1, statuses.getOrDefault("201", 0));
         assertEquals(5, statuses.getOrDefault("ISLAND_ITEM_ALREADY_OWNED", 0));
-        assertEquals(88, balance(user));
+        assertEquals(99, balance(user));
         assertEquals(1, count("wool_transactions", user));
         assertEquals(1, count("island_purchases", user));
     }
@@ -237,20 +237,20 @@ class IslandApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         wallet(user, 100);
         var statuses = run(user, List.of("1", "1", "1", "1", "1", "1"), true);
         assertEquals(6, statuses.getOrDefault("201", 0));
-        assertEquals(88, balance(user));
+        assertEquals(99, balance(user));
         assertEquals(1, count("wool_transactions", user));
     }
 
     @Test
     void concurrentPurchasesAtBalanceBoundaryNeverGoNegative() throws Exception {
-        wallet(user, 24);
+        wallet(user, 2);
         var statuses = run(user, List.of("1", "7", "9", "11"), false);
         assertEquals(2, statuses.getOrDefault("201", 0));
         assertEquals(2, statuses.getOrDefault("WOOL_BALANCE_INSUFFICIENT", 0));
         assertEquals(0, balance(user));
         assertEquals(2, count("wool_transactions", user));
         assertEquals(
-                -24,
+                -2,
                 db.queryForObject(
                         "SELECT SUM(amount) FROM wool_transactions WHERE user_id=?",
                         Integer.class,
