@@ -30,8 +30,8 @@ class ConcernReplyApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
 
     private long insert(long member, Instant maturesAt) {
         db.update(
-                "INSERT INTO concerns(user_id,content,comfort_type,matures_at,created_at)"
-                        + " VALUES(?,'고민','ADVICE',?,?)",
+                "INSERT INTO concerns(user_id,title,content,comfort_type,matures_at,created_at)"
+                        + " VALUES(?,'제목','고민','ADVICE',?,?)",
                 member,
                 utc(maturesAt),
                 utc(Instant.parse("2026-11-09T02:00:00Z")));

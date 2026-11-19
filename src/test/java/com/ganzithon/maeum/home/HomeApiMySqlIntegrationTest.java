@@ -34,8 +34,8 @@ class HomeApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
 
     private void concern(long member, Instant matures, Instant opened, Instant saved) {
         db.update(
-                "INSERT INTO concerns(user_id,content,comfort_type,matures_at,opened_at,saved_at,"
-                        + "created_at) VALUES(?,?,'ADVICE',?,?,?,?)",
+                "INSERT INTO concerns(user_id,title,content,comfort_type,matures_at,opened_at,"
+                        + "saved_at,created_at) VALUES(?,'제목',?,'ADVICE',?,?,?,?)",
                 member, "고민", utc(matures), utc(opened), utc(saved), utc(CREATED));
     }
 
