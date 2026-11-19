@@ -35,8 +35,8 @@ class ConcernMySqlIntegrationTest extends ActivityMySqlTestSupport {
                 connection -> {
                     PreparedStatement ps =
                             connection.prepareStatement(
-                                    "INSERT INTO concerns(user_id,content,comfort_type,matures_at,"
-                                            + "opened_at,saved_at,created_at) VALUES(?,?,?,?,?,?,?)",
+                                    "INSERT INTO concerns(user_id,title,content,comfort_type,matures_at,"
+                                            + "opened_at,saved_at,created_at) VALUES(?,'제목',?,?,?,?,?,?)",
                                     Statement.RETURN_GENERATED_KEYS);
                     ps.setLong(1, user);
                     ps.setString(2, "고민");

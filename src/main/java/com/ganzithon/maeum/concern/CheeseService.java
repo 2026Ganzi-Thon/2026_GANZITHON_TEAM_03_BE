@@ -1,14 +1,16 @@
 package com.ganzithon.maeum.concern;
 
 import com.ganzithon.maeum.global.activity.ActivityApi;
-import com.ganzithon.maeum.global.activity.ActivityStore;
 
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 
 @Service
 @Profile("auth")
@@ -16,112 +18,90 @@ import java.time.Instant;
 class CheeseService {
     record MineItem(
             String concernId,
+            String title,
             String preview,
-            String comfortType,
-            String status,
+            ComfortType comfortType,
+            ConcernStatus status,
             Instant maturesAt,
             Instant openedAt,
             Instant createdAt) {}
 
     record SavedItem(
-            String concernId, String preview, String comfortType, long replyCount, Instant savedAt) {}
+            String concernId,
+            String title,
+            String preview,
+            ComfortType comfortType,
+            long replyCount,
+            Instant savedAt) {}
 
-    record SaveResult(String concernId, String status, Instant savedAt) {}
+    record SaveResult(String concernId, ConcernStatus status, Instant savedAt) {}
 
-    private final ActivityStore store;
+    /** 기존 페이지 응답(items, page, size, hasNext)과 같은 형식입니다. */
+    record PageResult<T>(List<T> items, int page, int size, boolean hasNext) {
+        static <T> PageResult<T> of(Slice<T> slice) {
+            return new PageResult<>(
+                    slice.getContent(), slice.getNumber(), slice.getSize(), slice.hasNext());
+        }
+    }
+
+    private final ConcernRepository concerns;
     private final Clock clock;
 
-    CheeseService(ActivityStore s, Clock c) {
-        store = s;
+    CheeseService(ConcernRepository concerns, Clock c) {
+        this.concerns = concerns;
         clock = c;
     }
 
     @Transactional(readOnly = true)
-    Object mine(long user, int page, int size) {
+    PageResult<MineItem> mine(long user, int page, int size) {
         ActivityApi.page(page, size);
         var now = ConcernRules.now(clock);
-        var rows =
-                store.list(
-                        "SELECT id,content,comfort_type,matures_at,opened_at,saved_at,created_at"
-                            + " FROM concerns WHERE user_id=? ORDER BY created_at DESC,id DESC"
-                            + " LIMIT ? OFFSET ?",
-                        user,
-                        size + 1,
-                        (long) page * size);
-        return ActivityApi.pageResult(
-                rows.stream()
+        return PageResult.of(
+                concerns.findByUserIdOrderByCreatedAtDescIdDesc(user, PageRequest.of(page, size))
                         .map(
-                                r ->
+                                c ->
                                         new MineItem(
-                                                ActivityApi.sid(r.get("id")),
-                                                ConcernRules.preview(r),
-                                                (String) r.get("comfort_type"),
-                                                ConcernRules.status(r, now),
-                                                ActivityApi.instant(r.get("matures_at")),
-                                                ActivityApi.instant(r.get("opened_at")),
-                                                ActivityApi.instant(r.get("created_at"))))
-                        .toList(),
-                page,
-                size);
+                                                c.getId().toString(),
+                                                c.getTitle(),
+                                                c.preview(),
+                                                c.getComfortType(),
+                                                c.statusAt(now),
+                                                c.getMaturesAt(),
+                                                c.getOpenedAt(),
+                                                c.getCreatedAt())));
     }
 
     @Transactional(readOnly = true)
-    Object saved(long user, int page, int size) {
+    PageResult<SavedItem> saved(long user, int page, int size) {
         ActivityApi.page(page, size);
-        var rows =
-                store.list(
-                        "SELECT c.id,c.content,c.comfort_type,c.saved_at,(SELECT COUNT(*) FROM"
-                            + " comfort_replies r WHERE r.concern_id=c.id) AS reply_count FROM"
-                            + " concerns c WHERE c.user_id=? AND c.saved_at IS NOT NULL ORDER BY"
-                            + " c.saved_at DESC,c.id DESC LIMIT ? OFFSET ?",
-                        user,
-                        size + 1,
-                        (long) page * size);
-        return ActivityApi.pageResult(
-                rows.stream()
+        return PageResult.of(
+                concerns.findSaved(user, PageRequest.of(page, size))
                         .map(
-                                r ->
+                                row ->
                                         new SavedItem(
-                                                ActivityApi.sid(r.get("id")),
-                                                ConcernRules.preview(r),
-                                                (String) r.get("comfort_type"),
-                                                ((Number) r.get("reply_count")).longValue(),
-                                                ActivityApi.instant(r.get("saved_at"))))
-                        .toList(),
-                page,
-                size);
+                                                row.concern().getId().toString(),
+                                                row.concern().getTitle(),
+                                                row.concern().preview(),
+                                                row.concern().getComfortType(),
+                                                row.replyCount(),
+                                                row.concern().getSavedAt())));
     }
 
     SaveResult save(long user, long id) {
-        // UPDATE를 첫 쿼리로 실행해 동시 요청이 행 잠금에서 직렬화되게 합니다. 이미 보관된 행은 건드리지 않습니다.
-        var now = ConcernRules.now(clock);
-        store.update(
-                "UPDATE concerns SET saved_at=? WHERE id=? AND user_id=? AND opened_at IS NOT NULL"
-                    + " AND saved_at IS NULL",
-                ActivityApi.ts(now),
-                id,
-                user);
-        var r =
-                store.required(
-                        "SELECT id,opened_at,saved_at FROM concerns WHERE id=? AND user_id=?",
-                        "CONCERN_NOT_FOUND",
-                        id,
-                        user);
-        if (r.get("saved_at") == null) throw ActivityApi.problem(409, "CONCERN_NOT_OPENED");
-        return new SaveResult(
-                ActivityApi.sid(r.get("id")), "SAVED", ActivityApi.instant(r.get("saved_at")));
+        var concern = mineForUpdate(user, id);
+        concern.save(ConcernRules.now(clock));
+        return new SaveResult(concern.getId().toString(), ConcernStatus.SAVED, concern.getSavedAt());
     }
 
     SaveResult unsave(long user, long id) {
-        store.update("UPDATE concerns SET saved_at=NULL WHERE id=? AND user_id=?", id, user);
-        var r =
-                store.required(
-                        "SELECT id,matures_at,opened_at,saved_at FROM concerns WHERE id=? AND"
-                            + " user_id=?",
-                        "CONCERN_NOT_FOUND",
-                        id,
-                        user);
+        var concern = mineForUpdate(user, id);
+        concern.unsave();
         return new SaveResult(
-                ActivityApi.sid(r.get("id")), ConcernRules.status(r, ConcernRules.now(clock)), null);
+                concern.getId().toString(), concern.statusAt(ConcernRules.now(clock)), null);
+    }
+
+    private Concern mineForUpdate(long user, long id) {
+        return concerns.findMineForUpdate(id, user)
+                .orElseThrow(() -> ActivityApi.problem(404, "CONCERN_NOT_FOUND"));
     }
 }

@@ -1,6 +1,7 @@
 package com.ganzithon.maeum.home;
 
 import com.ganzithon.maeum.global.activity.ActivityApi;
+import com.ganzithon.maeum.concern.ConcernRepository;
 import com.ganzithon.maeum.global.activity.ActivityStore;
 
 import org.springframework.context.annotation.Profile;
@@ -28,10 +29,12 @@ class HomeService {
     record EmotionItem(String emotionId, String code, String name) {}
 
     private final ActivityStore store;
+    private final ConcernRepository concerns;
     private final Clock clock;
 
-    HomeService(ActivityStore store, Clock clock) {
+    HomeService(ActivityStore store, ConcernRepository concerns, Clock clock) {
         this.store = store;
+        this.concerns = concerns;
         this.clock = clock;
     }
 
@@ -40,18 +43,13 @@ class HomeService {
         var today = ActivityApi.day(instant);
         var nickname = store.required("SELECT nickname FROM users WHERE id=?", "USER_NOT_FOUND", user);
         var wallet = store.one("SELECT balance FROM wool_wallets WHERE user_id=?", user);
-        var matured =
-                store.one(
-                        "SELECT COUNT(*) AS c FROM concerns WHERE user_id=? AND matures_at<=?"
-                                + " AND opened_at IS NULL",
-                        user,
-                        ActivityApi.ts(instant));
+        long matured = concerns.countUnopenedMatured(user, instant);
         return new Summary(
                 (String) nickname.get("nickname"),
                 wallet == null ? 0 : ((Number) wallet.get("balance")).intValue(),
                 today.toString(),
                 todayEmotion(user, today),
-                ((Number) matured.get("c")).longValue());
+                matured);
     }
 
     private TodayEmotion todayEmotion(long user, LocalDate today) {

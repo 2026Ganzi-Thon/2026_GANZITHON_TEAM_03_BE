@@ -2,8 +2,8 @@ package com.ganzithon.maeum.concern;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ganzithon.maeum.global.activity.ActivityApi;
-import com.ganzithon.maeum.global.activity.ActivityStore;
 import com.ganzithon.maeum.global.activity.Idempotency;
+import com.ganzithon.maeum.user.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -19,35 +19,48 @@ import java.util.*;
 class ConcernService {
     private static final int LIST_LIMIT = 100;
 
-    private final ActivityStore store;
+    private final ConcernRepository concerns;
+    private final ComfortReplyRepository replies;
+    private final UserRepository users;
     private final Clock clock;
     private final Idempotency idem;
     private final long maturingHours;
 
     ConcernService(
-            ActivityStore s,
+            ConcernRepository concerns,
+            ComfortReplyRepository replies,
+            UserRepository users,
             Clock c,
             Idempotency i,
             @Value("${app.activity.concern-maturing-hours:24}") long maturingHours) {
-        store = s;
+        this.concerns = concerns;
+        this.replies = replies;
+        this.users = users;
         clock = c;
         idem = i;
         this.maturingHours = maturingHours;
     }
 
-    record ListItem(String concernId, String preview, String comfortType, Instant createdAt) {}
+    record ListItem(
+            String concernId,
+            String title,
+            String preview,
+            ComfortType comfortType,
+            Instant createdAt) {}
 
     record ListResult(List<ListItem> items, int count) {}
 
-    record CreateResult(String concernId, String status, Instant maturesAt, Instant createdAt) {}
+    record CreateResult(
+            String concernId, ConcernStatus status, Instant maturesAt, Instant createdAt) {}
 
     record Detail(
             String concernId,
+            String title,
             String content,
-            String comfortType,
+            ComfortType comfortType,
             Instant createdAt,
             boolean mine,
-            String status,
+            ConcernStatus status,
             Instant maturesAt,
             boolean replyable,
             boolean alreadyReplied) {}
@@ -56,31 +69,23 @@ class ConcernService {
     ListResult list(long user) {
         var now = ConcernRules.now(clock);
         var items =
-                store
-                        .list(
-                                "SELECT c.id,c.content,c.comfort_type,c.created_at FROM concerns c"
-                                    + " WHERE c.user_id<>? AND c.matures_at>? AND NOT EXISTS (SELECT 1"
-                                    + " FROM comfort_replies r WHERE r.concern_id=c.id AND"
-                                    + " r.author_id=?) ORDER BY RAND() LIMIT ?",
-                                user,
-                                ActivityApi.ts(now),
-                                user,
-                                LIST_LIMIT)
-                        .stream()
+                concerns.findReplyCandidates(user, now, LIST_LIMIT).stream()
                         .map(
-                                r ->
+                                c ->
                                         new ListItem(
-                                                ActivityApi.sid(r.get("id")),
-                                                ConcernRules.preview(r),
-                                                (String) r.get("comfort_type"),
-                                                ActivityApi.instant(r.get("created_at"))))
+                                                c.getId().toString(),
+                                                c.getTitle(),
+                                                c.preview(),
+                                                c.getComfortType(),
+                                                c.getCreatedAt()))
                         .toList();
         return new ListResult(items, items.size());
     }
 
     Idempotency.Reply create(
             long user, String key, JsonNode body, ConcernCreateRequest request) {
-        store.lockUser(user);
+        // 같은 사용자의 멱등 요청을 직렬화하려고 사용자 행을 먼저 잠급니다.
+        users.findForUpdate(user).orElseThrow(() -> ActivityApi.problem(404, "USER_NOT_FOUND"));
         var now = ConcernRules.now(clock);
         return idem.execute(
                 user,
@@ -91,50 +96,43 @@ class ConcernService {
                 201,
                 () -> {
                     var matures = now.plus(Duration.ofHours(maturingHours));
-                    long id =
-                            store.insert(
-                                    "INSERT INTO"
-                                        + " concerns(user_id,content,comfort_type,matures_at,created_at)"
-                                        + " VALUES(?,?,?,?,?)",
-                                    user,
-                                    request.content(),
-                                    request.comfortType(),
-                                    ActivityApi.ts(matures),
-                                    ActivityApi.ts(now));
-                    return new CreateResult(Long.toString(id), "MATURING", matures, now);
+                    var concern =
+                            concerns.save(
+                                    new Concern(
+                                            user,
+                                            request.title(),
+                                            request.content(),
+                                            request.comfortType(),
+                                            matures,
+                                            now));
+                    return new CreateResult(
+                            concern.getId().toString(), ConcernStatus.MATURING, matures, now);
                 });
     }
 
     @Transactional(readOnly = true)
     Detail detail(long user, long id) {
         var now = ConcernRules.now(clock);
-        var r =
-                store.required(
-                        "SELECT * FROM concerns WHERE id=?", "CONCERN_NOT_FOUND", id);
-        boolean mine = ((Number) r.get("user_id")).longValue() == user;
-        boolean replied =
-                !mine
-                        && store.one(
-                                        "SELECT id FROM comfort_replies WHERE concern_id=? AND"
-                                            + " author_id=?",
-                                        id,
-                                        user)
-                                != null;
-        String status = ConcernRules.status(r, now);
+        var concern =
+                concerns.findById(id)
+                        .orElseThrow(() -> ActivityApi.problem(404, "CONCERN_NOT_FOUND"));
+        boolean mine = concern.isOwnedBy(user);
+        boolean replied = !mine && replies.existsByConcernIdAndAuthorId(id, user);
+        var status = concern.statusAt(now);
         return new Detail(
-                ActivityApi.sid(r.get("id")),
-                (String) r.get("content"),
-                (String) r.get("comfort_type"),
-                ActivityApi.instant(r.get("created_at")),
+                concern.getId().toString(),
+                concern.getTitle(),
+                concern.getContent(),
+                concern.getComfortType(),
+                concern.getCreatedAt(),
                 mine,
                 status,
-                mine ? ActivityApi.instant(r.get("matures_at")) : null,
-                !mine && !replied && status.equals("MATURING"),
+                mine ? concern.getMaturesAt() : null,
+                !mine && !replied && status == ConcernStatus.MATURING,
                 replied);
     }
 
     void delete(long user, long id) {
-        if (store.update("DELETE FROM concerns WHERE id=? AND user_id=?", id, user) == 0)
-            throw ActivityApi.problem(404, "CONCERN_NOT_FOUND");
+        if (concerns.deleteMine(id, user) == 0) throw ActivityApi.problem(404, "CONCERN_NOT_FOUND");
     }
 }

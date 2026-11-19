@@ -29,9 +29,9 @@ class ConcernSavedApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
     private long insert(long member, String content, Instant created, Instant matures,
             Instant opened, Instant saved) {
         db.update(
-                "INSERT INTO concerns(user_id,content,comfort_type,matures_at,opened_at,saved_at,"
-                        + "created_at) VALUES(?,?,'ADVICE',?,?,?,?)",
-                member, content, utc(matures), utc(opened), utc(saved), utc(created));
+                "INSERT INTO concerns(user_id,title,content,comfort_type,matures_at,opened_at,"
+                        + "saved_at,created_at) VALUES(?,?,?,'ADVICE',?,?,?,?)",
+                member, "제목 " + content.substring(0, Math.min(10, content.length())), content, utc(matures), utc(opened), utc(saved), utc(created));
         return db.queryForObject("SELECT MAX(id) FROM concerns WHERE user_id=?", Long.class, member);
     }
 
@@ -68,6 +68,12 @@ class ConcernSavedApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
 
     private static String code(JsonNode r) {
         return r.get("code").asText();
+    }
+
+    private static java.util.List<String> fieldNames(JsonNode node) {
+        var names = new java.util.ArrayList<String>();
+        node.fieldNames().forEachRemaining(names::add);
+        return names;
     }
 
     private static String ids(JsonNode items) {
@@ -120,7 +126,9 @@ class ConcernSavedApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         var d = mine(200, "", user).get("data");
         assertEquals(1, d.get("items").size());
         var item = d.get("items").get(0);
-        assertEquals(7, item.size());
+        assertEquals(8, item.size());
+        assertEquals("제목 " + "가".repeat(10), item.get("title").asText());
+        assertEquals("title", fieldNames(item).get(1));
         assertEquals("가".repeat(100), item.get("preview").asText());
         assertEquals("ADVICE", item.get("comfortType").asText());
         assertFalse(item.has("replyCount"));
@@ -243,7 +251,9 @@ class ConcernSavedApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         var d = box(200, "", user).get("data");
         assertEquals(b + "," + c + "," + a + ",", ids(d.get("items")));
         var item = d.get("items").get(0);
-        assertEquals(5, item.size());
+        assertEquals(6, item.size());
+        assertEquals("제목 고민", item.get("title").asText());
+        assertEquals("title", fieldNames(item).get(1));
         assertEquals("2026-11-09T02:00:50Z", item.get("savedAt").asText());
         assertEquals(20, d.get("size").asInt());
         assertFalse(d.get("hasNext").asBoolean());
