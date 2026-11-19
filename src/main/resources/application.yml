@@ -43,3 +43,9 @@ app:
 
   verification:
     ip-max-per-minute: ${EMAIL_VERIFICATION_IP_MAX_PER_MINUTE:30}
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}

@@ -39,6 +39,7 @@ public class AuthSecurityConfig {
                         }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .requestMatchers(resetSend, resetApply).permitAll()
                         .requestMatchers(HttpMethod.POST, AuthOriginFilter.COOKIE_PATHS.toArray(String[]::new)).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/email-verifications", "/api/v1/auth/email-verifications/confirm").permitAll()
