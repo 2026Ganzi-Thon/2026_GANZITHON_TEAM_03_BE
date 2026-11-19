@@ -1,5 +1,6 @@
 package com.ganzithon.maeum.emotion;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
@@ -15,13 +16,13 @@ class EmotionMySqlIntegrationTest extends ActivityMySqlTestSupport {
     void masterData() {
         db.update(
                 "INSERT INTO emotions(id,code,name,display_order,active)"
-                    + " VALUES(1,'JOY','기쁨',1,true),(2,'CALM','평온',2,true),(3,'OLD','과거',3,false)");
+                    + " VALUES(91001,'FIXTURE_JOY','기쁨',1,true),(91002,'FIXTURE_CALM','평온',2,true),(91003,'FIXTURE_OLD','과거',3,false)");
     }
 
     @AfterEach
     void clean() {
         clearFixtures("emotion_records");
-        db.update("DELETE FROM emotions WHERE id IN (1,2,3)");
+        db.update("DELETE FROM emotions WHERE id IN (91001,91002,91003)");
     }
 
     private String createRecord() throws Exception {
@@ -30,7 +31,7 @@ class EmotionMySqlIntegrationTest extends ActivityMySqlTestSupport {
                         auth(
                                 json(
                                         post("/api/v1/emotion-records"),
-                                        "{\"emotionIds\":[\"1\",\"2\"],\"memo\":\"hello\"}"),
+                                        "{\"emotionIds\":[\"91001\",\"91002\"],\"memo\":\"hello\"}"),
                                 user))
                 .at("/data/recordId")
                 .asText();
@@ -50,7 +51,12 @@ class EmotionMySqlIntegrationTest extends ActivityMySqlTestSupport {
 
     @Test
     void emotionCrudAndPrivacy() throws Exception {
-        assertEquals(2, call(200, auth(get("/api/v1/emotions"), user)).at("/data/items").size());
+        assertThat(
+                        call(200, auth(get("/api/v1/emotions"), user))
+                                .at("/data/items")
+                                .findValuesAsText("emotionId"))
+                .contains("91001", "91002")
+                .doesNotContain("91003");
         String id = createRecord();
         assertEquals(
                 1, call(200, auth(get("/api/v1/emotion-records"), user)).at("/data/items").size());
@@ -72,7 +78,9 @@ class EmotionMySqlIntegrationTest extends ActivityMySqlTestSupport {
                                 user));
         assertTrue(updated.at("/data/memo").isNull());
         assertEquals(2, updated.at("/data/emotions").size());
-        call(409, auth(json(post("/api/v1/emotion-records"), "{\"emotionIds\":[\"1\"]}"), user));
+        call(
+                409,
+                auth(json(post("/api/v1/emotion-records"), "{\"emotionIds\":[\"91001\"]}"), user));
         call(204, auth(delete("/api/v1/emotion-records/" + id), user));
         assertEquals(
                 0,
@@ -81,11 +89,15 @@ class EmotionMySqlIntegrationTest extends ActivityMySqlTestSupport {
 
     @Test
     void strictValidationAndPatchPreservesHistoricalEmotion() throws Exception {
-        call(400, auth(json(post("/api/v1/emotion-records"), "{\"emotionIds\":[\"3\"]}"), user));
+        call(
+                400,
+                auth(json(post("/api/v1/emotion-records"), "{\"emotionIds\":[\"91003\"]}"), user));
         call(
                 400,
                 auth(
-                        json(post("/api/v1/emotion-records"), "{\"emotionIds\":[\"1\",\"1\"]}"),
+                        json(
+                                post("/api/v1/emotion-records"),
+                                "{\"emotionIds\":[\"91001\",\"91001\"]}"),
                         user));
         call(400, auth(json(post("/api/v1/emotion-records"), "{\"emotionIds\":[1]}"), user));
         call(
@@ -93,17 +105,17 @@ class EmotionMySqlIntegrationTest extends ActivityMySqlTestSupport {
                 auth(
                         json(
                                 post("/api/v1/emotion-records"),
-                                "{\"emotionIds\":[\"1\"],\"userId\":\"2\"}"),
+                                "{\"emotionIds\":[\"91001\"],\"userId\":\"91002\"}"),
                         user));
         String id = createRecord();
-        db.update("UPDATE emotions SET active=false WHERE id=1");
+        db.update("UPDATE emotions SET active=false WHERE id=91001");
         var r =
                 call(
                         200,
                         auth(
                                 json(
                                         patch("/api/v1/emotion-records/" + id),
-                                        "{\"emotionIds\":[\"1\"]}"),
+                                        "{\"emotionIds\":[\"91001\"]}"),
                                 user));
         assertEquals("hello", r.at("/data/memo").asText());
         call(400, auth(json(patch("/api/v1/emotion-records/" + id), "{}"), user));
