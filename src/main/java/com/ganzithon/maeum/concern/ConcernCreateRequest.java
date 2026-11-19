@@ -6,7 +6,7 @@ import com.ganzithon.maeum.global.activity.ActivityApi;
 import java.util.Set;
 
 /** 고민 작성 요청입니다. from()으로 만들 때 본문을 검증합니다. */
-record ConcernCreateRequest(String content, String comfortType) {
+record ConcernCreateRequest(String content, ComfortType comfortType) {
     private static final int CONTENT_LIMIT = 1000;
     private static final Set<String> COMFORT_TYPES = Set.of("EMPATHY", "EXPERIENCE", "ADVICE");
 
@@ -20,6 +20,6 @@ record ConcernCreateRequest(String content, String comfortType) {
         if (content.isEmpty()
                 || content.codePointCount(0, content.length()) > CONTENT_LIMIT
                 || !COMFORT_TYPES.contains(type)) throw ActivityApi.bad();
-        return new ConcernCreateRequest(content, type);
+        return new ConcernCreateRequest(content, ComfortType.valueOf(type));
     }
 }
