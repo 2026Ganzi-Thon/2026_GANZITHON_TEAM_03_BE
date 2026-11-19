@@ -33,26 +33,26 @@ class ConcernController {
         return ActivityApi.id(jwt.getSubject());
     }
 
-    private ResponseEntity<Object> ok(Object data) {
+    private static <T> ResponseEntity<ApiResponse<T>> ok(T data) {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
                 .body(new ApiResponse<>(data));
     }
 
-    private ResponseEntity<Object> reply(Idempotency.Reply response) {
+    private static ResponseEntity<Object> reply(Idempotency.Reply response) {
         return ResponseEntity.status(response.status())
                 .cacheControl(CacheControl.noStore())
                 .body(response.body());
     }
 
-    private ResponseEntity<Object> created(Object data) {
+    private static <T> ResponseEntity<ApiResponse<T>> created(T data) {
         return ResponseEntity.status(201)
                 .cacheControl(CacheControl.noStore())
                 .body(new ApiResponse<>(data));
     }
 
     @GetMapping("/concerns")
-    ResponseEntity<Object> list(@AuthenticationPrincipal Jwt jwt) {
+    ResponseEntity<ApiResponse<ConcernService.ListResult>> list(@AuthenticationPrincipal Jwt jwt) {
         return ok(service.list(user(jwt)));
     }
 
@@ -65,12 +65,12 @@ class ConcernController {
     }
 
     @GetMapping("/concerns/{concernId}")
-    ResponseEntity<Object> detail(@AuthenticationPrincipal Jwt jwt, @PathVariable String concernId) {
+    ResponseEntity<ApiResponse<ConcernService.Detail>> detail(@AuthenticationPrincipal Jwt jwt, @PathVariable String concernId) {
         return ok(service.detail(user(jwt), ActivityApi.id(concernId)));
     }
 
     @PostMapping("/concerns/{concernId}/replies")
-    ResponseEntity<Object> createReply(
+    ResponseEntity<ApiResponse<ComfortReplyService.ReplyResult>> createReply(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String concernId,
             @RequestBody JsonNode body) {
@@ -79,7 +79,7 @@ class ConcernController {
     }
 
     @PostMapping("/concerns/{concernId}/open")
-    ResponseEntity<Object> open(
+    ResponseEntity<ApiResponse<ComfortReplyService.ReceivedReplies>> open(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String concernId,
             @RequestBody(required = false) JsonNode body) {
@@ -88,12 +88,12 @@ class ConcernController {
     }
 
     @GetMapping("/concerns/{concernId}/replies")
-    ResponseEntity<Object> replies(@AuthenticationPrincipal Jwt jwt, @PathVariable String concernId) {
+    ResponseEntity<ApiResponse<ComfortReplyService.ReceivedReplies>> replies(@AuthenticationPrincipal Jwt jwt, @PathVariable String concernId) {
         return ok(replyService.replies(user(jwt), ActivityApi.id(concernId)));
     }
 
     @GetMapping("/users/me/concerns")
-    ResponseEntity<Object> mine(
+    ResponseEntity<ApiResponse<CheeseService.PageResult<CheeseService.MineItem>>> mine(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -101,7 +101,7 @@ class ConcernController {
     }
 
     @GetMapping("/users/me/saved-concerns")
-    ResponseEntity<Object> saved(
+    ResponseEntity<ApiResponse<CheeseService.PageResult<CheeseService.SavedItem>>> saved(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -109,7 +109,7 @@ class ConcernController {
     }
 
     @PatchMapping("/concerns/{concernId}/save")
-    ResponseEntity<Object> save(
+    ResponseEntity<ApiResponse<CheeseService.SaveResult>> save(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String concernId,
             @RequestBody(required = false) JsonNode body) {
@@ -118,7 +118,7 @@ class ConcernController {
     }
 
     @PatchMapping("/concerns/{concernId}/unsave")
-    ResponseEntity<Object> unsave(
+    ResponseEntity<ApiResponse<CheeseService.SaveResult>> unsave(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String concernId,
             @RequestBody(required = false) JsonNode body) {
