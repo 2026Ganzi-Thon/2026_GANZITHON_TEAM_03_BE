@@ -18,7 +18,7 @@ class ConcernTest {
     private static final Instant AFTER = MATURES.plusSeconds(60);
 
     private static Concern concern(String content) {
-        return new Concern(OWNER, content, ComfortType.ADVICE, MATURES, MATURES.minusSeconds(86400));
+        return new Concern(OWNER, "제목", content, ComfortType.ADVICE, MATURES, MATURES.minusSeconds(86400));
     }
 
     private static Concern concern() {
@@ -34,6 +34,11 @@ class ConcernTest {
         codeField.setAccessible(true);
         assertEquals(status, statusField.getInt(problem));
         assertEquals(code, codeField.get(problem));
+    }
+
+    @Test
+    void keepsTitle() {
+        assertEquals("제목", concern().getTitle());
     }
 
     // ---- 상태 계산 ----

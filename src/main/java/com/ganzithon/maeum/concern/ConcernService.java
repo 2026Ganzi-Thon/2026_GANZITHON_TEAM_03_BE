@@ -41,7 +41,12 @@ class ConcernService {
         this.maturingHours = maturingHours;
     }
 
-    record ListItem(String concernId, String preview, ComfortType comfortType, Instant createdAt) {}
+    record ListItem(
+            String concernId,
+            String title,
+            String preview,
+            ComfortType comfortType,
+            Instant createdAt) {}
 
     record ListResult(List<ListItem> items, int count) {}
 
@@ -50,6 +55,7 @@ class ConcernService {
 
     record Detail(
             String concernId,
+            String title,
             String content,
             ComfortType comfortType,
             Instant createdAt,
@@ -68,6 +74,7 @@ class ConcernService {
                                 c ->
                                         new ListItem(
                                                 c.getId().toString(),
+                                                c.getTitle(),
                                                 c.preview(),
                                                 c.getComfortType(),
                                                 c.getCreatedAt()))
@@ -93,6 +100,7 @@ class ConcernService {
                             concerns.save(
                                     new Concern(
                                             user,
+                                            request.title(),
                                             request.content(),
                                             request.comfortType(),
                                             matures,
@@ -113,6 +121,7 @@ class ConcernService {
         var status = concern.statusAt(now);
         return new Detail(
                 concern.getId().toString(),
+                concern.getTitle(),
                 concern.getContent(),
                 concern.getComfortType(),
                 concern.getCreatedAt(),

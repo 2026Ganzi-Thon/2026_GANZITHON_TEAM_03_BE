@@ -22,6 +22,9 @@ class Concern {
     @Column(nullable = false, updatable = false)
     private long userId;
 
+    @Column(nullable = false, updatable = false, length = 50)
+    private String title;
+
     @Column(nullable = false, updatable = false, length = 1000)
     private String content;
 
@@ -43,8 +46,15 @@ class Concern {
 
     protected Concern() {}
 
-    Concern(long userId, String content, ComfortType comfortType, Instant maturesAt, Instant createdAt) {
+    Concern(
+            long userId,
+            String title,
+            String content,
+            ComfortType comfortType,
+            Instant maturesAt,
+            Instant createdAt) {
         this.userId = userId;
+        this.title = title;
         this.content = content;
         this.comfortType = comfortType;
         this.maturesAt = maturesAt;
@@ -53,6 +63,10 @@ class Concern {
 
     Long getId() {
         return id;
+    }
+
+    String getTitle() {
+        return title;
     }
 
     String getContent() {

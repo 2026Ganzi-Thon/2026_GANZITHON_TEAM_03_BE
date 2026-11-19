@@ -26,18 +26,28 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
     }
 
     private String body(String content, String type) {
+        return body("고민 제목", content, type);
+    }
+
+    private String body(String title, String content, String type) {
         return new com.fasterxml.jackson.databind.ObjectMapper()
                 .createObjectNode()
+                .put("title", title)
                 .put("content", content)
                 .put("comfortType", type)
                 .toString();
     }
 
     private JsonNode create(long member, String content, String type) throws Exception {
+        return create(member, "고민 제목", content, type);
+    }
+
+    private JsonNode create(long member, String title, String content, String type)
+            throws Exception {
         return call(
                 201,
                 auth(
-                        json(post("/api/v1/concerns"), body(content, type))
+                        json(post("/api/v1/concerns"), body(title, content, type))
                                 .header("Idempotency-Key", key()),
                         member));
     }
@@ -48,13 +58,19 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
 
     private long insertAt(long member, String content, Instant maturesAt, Instant createdAt) {
         db.update(
-                "INSERT INTO concerns(user_id,content,comfort_type,matures_at,created_at)"
-                        + " VALUES(?,?,'ADVICE',?,?)",
+                "INSERT INTO concerns(user_id,title,content,comfort_type,matures_at,created_at)"
+                        + " VALUES(?,'저장된 제목',?,'ADVICE',?,?)",
                 member,
                 content,
                 LocalDateTime.ofInstant(maturesAt, ZoneOffset.UTC),
                 LocalDateTime.ofInstant(createdAt, ZoneOffset.UTC));
         return db.queryForObject("SELECT MAX(id) FROM concerns WHERE user_id=?", Long.class, member);
+    }
+
+    private static String fieldNames(JsonNode node) {
+        var names = new ArrayList<String>();
+        node.fieldNames().forEachRemaining(names::add);
+        return names.toString();
     }
 
     @Test
@@ -71,6 +87,82 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
                         "SELECT content FROM concerns WHERE id=?",
                         String.class,
                         r.at("/data/concernId").asText()));
+    }
+
+    @Test
+    void createStoresStrippedTitleAndDetailReturnsIt() throws Exception {
+        var r = create(user, "  면접이 걱정돼요  ", "취업 준비가 길어져요", "EMPATHY");
+        String id = r.at("/data/concernId").asText();
+        assertFalse(r.get("data").has("title"));
+        assertEquals(
+                "면접이 걱정돼요",
+                db.queryForObject("SELECT title FROM concerns WHERE id=?", String.class, id));
+        assertEquals(
+                "면접이 걱정돼요",
+                call(200, auth(get("/api/v1/concerns/" + id), user)).at("/data/title").asText());
+    }
+
+    @Test
+    void createAcceptsTitleOf50CodePoints() throws Exception {
+        String title = "😀".repeat(50);
+        var r = create(user, "  " + title + "  ", "고민", "ADVICE");
+        assertEquals(
+                title,
+                db.queryForObject(
+                        "SELECT title FROM concerns WHERE id=?",
+                        String.class,
+                        r.at("/data/concernId").asText()));
+    }
+
+    @Test
+    void createRejectsInvalidTitle() throws Exception {
+        String[] bad = {
+            "{\"title\":\"첫 줄\\n둘째 줄\",\"content\":\"고민\",\"comfortType\":\"EMPATHY\"}",
+            "{\"title\":123,\"content\":\"고민\",\"comfortType\":\"EMPATHY\"}",
+            "{\"title\":[\"제목\"],\"content\":\"고민\",\"comfortType\":\"EMPATHY\"}",
+            body("", "고민", "EMPATHY"),
+            body("   ", "고민", "EMPATHY"),
+            body("가".repeat(51), "고민", "EMPATHY"),
+            body("😀".repeat(51), "고민", "EMPATHY")
+        };
+        for (String b : bad)
+            assertEquals(
+                    "COMMON_INVALID_REQUEST",
+                    call(
+                                    400,
+                                    auth(
+                                            json(post("/api/v1/concerns"), b)
+                                                    .header("Idempotency-Key", key()),
+                                            user))
+                            .get("code")
+                            .asText(),
+                    b);
+        assertEquals(0, db.queryForObject("SELECT count(*) FROM concerns WHERE user_id=?", Integer.class, user));
+    }
+
+    @Test
+    void createWithoutTitleUsesFirstLineOfContent() throws Exception {
+        String[] bodies = {
+            "{\"content\":\"  첫 줄 제목  \\n둘째 줄\",\"comfortType\":\"EMPATHY\"}",
+            "{\"content\":\"" + "가".repeat(60) + "\",\"comfortType\":\"EMPATHY\"}",
+            "{\"title\":null,\"content\":\"캐리지\\t리턴\\r다음 줄\",\"comfortType\":\"EMPATHY\"}"
+        };
+        String[] titles = {"첫 줄 제목", "가".repeat(50), "캐리지 리턴"};
+        for (int i = 0; i < bodies.length; i++) {
+            var created =
+                    call(
+                                    201,
+                                    auth(
+                                            json(post("/api/v1/concerns"), bodies[i])
+                                                    .header("Idempotency-Key", key()),
+                                            user))
+                            .get("data");
+            assertEquals(
+                    titles[i],
+                    call(200, auth(get("/api/v1/concerns/" + created.get("concernId").asText()), user))
+                            .at("/data/title")
+                            .asText());
+        }
     }
 
     @Test
@@ -93,9 +185,9 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
             body("   ", "EMPATHY"),
             body("가".repeat(1001), "EMPATHY"),
             body("고민", "UNKNOWN"),
-            "{\"content\":\"고민\"}",
-            "{\"content\":123,\"comfortType\":\"EMPATHY\"}",
-            "{\"content\":\"고민\",\"comfortType\":\"EMPATHY\",\"userId\":1}",
+            "{\"title\":\"제목\",\"content\":\"고민\"}",
+            "{\"title\":\"제목\",\"content\":123,\"comfortType\":\"EMPATHY\"}",
+            "{\"title\":\"제목\",\"content\":\"고민\",\"comfortType\":\"EMPATHY\",\"userId\":1}",
             "[]"
         };
         for (String b : bad)
@@ -138,6 +230,18 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
     }
 
     @Test
+    void sameKeyDifferentTitleConflicts() throws Exception {
+        String k = key();
+        call(201, auth(json(post("/api/v1/concerns"), body("제목 하나", "고민", "EMPATHY")).header("Idempotency-Key", k), user));
+        assertEquals(
+                "COMMON_IDEMPOTENCY_CONFLICT",
+                call(409, auth(json(post("/api/v1/concerns"), body("제목 둘", "고민", "EMPATHY")).header("Idempotency-Key", k), user))
+                        .get("code")
+                        .asText());
+        assertEquals(1, db.queryForObject("SELECT count(*) FROM concerns WHERE user_id=?", Integer.class, user));
+    }
+
+    @Test
     void concurrentRetriesCreateOnlyOne() throws Exception {
         String k = key(), b = body("고민", "EMPATHY");
         try (var pool = Executors.newFixedThreadPool(6)) {
@@ -170,10 +274,12 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         assertEquals(1, r.at("/data/count").asInt());
         var item = r.at("/data/items/0");
         assertEquals(Long.toString(visible), item.get("concernId").asText());
+        assertEquals("저장된 제목", item.get("title").asText());
         assertEquals("가".repeat(100), item.get("preview").asText());
         assertEquals("ADVICE", item.get("comfortType").asText());
         assertEquals("2026-11-10T02:00:00Z", item.get("createdAt").asText());
-        assertEquals(4, item.size());
+        assertEquals(5, item.size());
+        assertEquals("[concernId, title, preview, comfortType, createdAt]", fieldNames(item));
         assertFalse(r.toString().contains("userId"));
         assertEquals(
                 1,
@@ -198,6 +304,7 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         long id = insert(other, "남의 고민", clock.now.plusSeconds(3600));
         var r = call(200, auth(get("/api/v1/concerns/" + id), user));
         var d = r.get("data");
+        assertEquals("저장된 제목", d.get("title").asText());
         assertEquals("남의 고민", d.get("content").asText());
         assertEquals("ADVICE", d.get("comfortType").asText());
         assertFalse(d.get("mine").asBoolean());
@@ -205,7 +312,8 @@ class ConcernApiMySqlIntegrationTest extends ActivityMySqlTestSupport {
         assertTrue(d.get("maturesAt").isNull());
         assertTrue(d.get("replyable").asBoolean());
         assertFalse(d.get("alreadyReplied").asBoolean());
-        assertEquals(9, d.size());
+        assertEquals(10, d.size());
+        assertEquals("title", fieldNames(d).split(", ")[1]);
         assertFalse(r.toString().contains("userId"));
 
         db.update(
