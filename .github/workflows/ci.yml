@@ -69,7 +69,7 @@ jobs:
   deploy:
     name: 서울 EC2 시연 서버 배포
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop' && vars.DEMO_DEPLOY_ENABLED == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEMO_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -105,9 +105,9 @@ jobs:
       - name: JAR 업로드 및 EC2 배포
         shell: bash
         run: |
-          read -r latest_sha _ < <(git ls-remote origin refs/heads/develop)
+          read -r latest_sha _ < <(git ls-remote origin refs/heads/main)
           if [[ "$latest_sha" != "$GITHUB_SHA" ]]; then
-            echo "Skipping superseded develop commit $GITHUB_SHA"
+            echo "Skipping superseded main commit $GITHUB_SHA"
             exit 0
           fi
 
