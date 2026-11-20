@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: ${TEST_MYSQL_URL}
+    username: ${TEST_MYSQL_USERNAME}
+    password: ${TEST_MYSQL_PASSWORD}
+  flyway:
+    enabled: true
+    clean-disabled: true
+    baseline-on-migrate: false
+  jpa:
+    hibernate:
+      ddl-auto: validate

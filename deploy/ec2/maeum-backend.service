@@ -1,0 +1,17 @@
+[Unit]
+Description=Maeum Spring Boot backend
+Wants=network-online.target
+After=network-online.target mysql.service
+
+[Service]
+User=maeum
+Group=maeum
+WorkingDirectory=/opt/maeum
+EnvironmentFile=/etc/maeum/backend.env
+ExecStart=/usr/bin/java -Xmx512m -jar /opt/maeum/current.jar --server.address=127.0.0.1 --server.port=8080
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

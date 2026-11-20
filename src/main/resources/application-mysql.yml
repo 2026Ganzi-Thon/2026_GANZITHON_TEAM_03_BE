@@ -1,5 +1,9 @@
 # IntelliJ 실행 구성에 아래 환경변수를 지정합니다. 실제 비밀값은 커밋하지 않습니다.
 spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    clean-disabled: true
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME}?connectionTimeZone=UTC
     username: ${DB_USERNAME}

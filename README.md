@@ -13,7 +13,7 @@
 
 ## 현재 상태와 기술
 
-회원·인증·프로필 개발을 위한 Spring Boot 프로젝트를 초기화했습니다. DB 없이 기동을 확인하는 bootstrap 프로필과 MySQL 연결용 프로필을 구분합니다. 업무 API와 JWT 인증 로직은 아직 구현하지 않았습니다.
+회원 저장 기반과 이메일 인증 발송·확인 API를 구현했습니다. DB 없이 기동을 확인하는 bootstrap 프로필과 MySQL 연결용 프로필을 구분합니다. 실제 메일은 mysql,smtp 프로필과 SMTP 접속 정보가 필요합니다. Google 로그인·신규 가입 동의·JWT 인증·Refresh Token 회전·세션 로그아웃을 구현했습니다. Google 인증은 mysql,auth 프로필과 실제 설정이 필요합니다. 일반 이메일 회원가입·로그인과 비밀번호 재설정도 `mysql,auth` 프로필에서 사용할 수 있습니다. 재설정 메일에는 `smtp` 프로필과 `PASSWORD_RESET_FRONTEND_URL`을 설정합니다.
 
 | 항목 | 상태 |
 | --- | --- |
@@ -23,6 +23,8 @@
 | DB | MySQL 예정, 버전 미정 |
 | 빌드 도구 | Gradle 8.14.3 Wrapper·Groovy DSL |
 | 배포 환경 | 미정 |
+
+로그인한 회원은 내 정보 조회·수정(`GET/PATCH /api/v1/users/me`), 닉네임 중복 확인(`GET /api/v1/users/nickname-availability`), 초기 프로필 설정과 온보딩 완료(`PATCH /api/v1/users/me/initial-profile`, `PATCH /api/v1/users/me/onboarding`)를 사용할 수 있습니다. 닉네임은 앞뒤 공백을 제거한 뒤 한글·영문·숫자·밑줄로 2~8자를 허용하며, 대소문자를 구분합니다. 초기 설정에는 닉네임이 필요합니다. 나이대·지역은 코드 목록이 정해질 때까지 최대 30자의 선택값으로 받습니다.
 
 ## 실행 및 개발 준비
 
@@ -37,18 +39,27 @@
 - 기동 확인: `http://localhost:8080/actuator/health`
 - 기본 bootstrap 프로필은 DB를 연결하지 않습니다. 업무 API 개발 시 mysql 프로필과 실제 DB 환경변수를 지정합니다.
 - `.env.example`은 필요한 환경변수 안내입니다. Spring Boot가 `.env`를 자동으로 읽지는 않습니다.
-- MySQL 설정은 `ddl-auto=validate`이며 DB 스키마를 자동으로 변경하지 않습니다.
-- 서버 상태 확인 외 API는 초기 보안 설정에서 차단합니다. 실제 인증·프로필 API는 별도 구현이 필요합니다.
-- API 명세 미결정 사항, DB 구조, Refresh Token 저장소, JWT·Google·메일 방식은 구현 전에 확정해야 합니다.
-- 빌드 CI는 아직 구성하지 않았습니다. 공통 세팅은 PR에서 검토한 뒤 팀 공통 기반으로 병합합니다.
+- MySQL 프로필은 Flyway로 버전별 SQL을 적용하고 Hibernate `ddl-auto=validate`로 검증합니다. 전용 빈 스키마에서 시작합니다.
+- auth 프로필에서는 쿠키 인증 API에 허용 Origin 검증을 적용하고, 나머지 `/api/v1/**`는 Access Token을 요구합니다. auth 미사용 시 기존 제한을 유지합니다.
+- JWT는 HS256, Refresh Token은 DB 해시 저장으로 구현했습니다. 실제 Google Client ID·JWT 키·Origin·약관 버전은 실행 환경에 주입합니다.
+- GitHub Actions CI가 develop·main 대상 PR과 푸시에서 단위 테스트와 MySQL 통합 테스트를 실행합니다. 공통 세팅은 PR에서 검토한 뒤 팀 공통 기반으로 병합합니다.
 
 실제 비밀번호·JWT 키·토큰·OAuth 시크릿·감정 기록·고민 본문을 저장소·이슈·PR·로그에 넣지 않습니다.
 
 ## 협업 문서
 
+기능은 최신 `develop`에서 브랜치를 만들고 `기능 브랜치 → develop` PR로 통합합니다. 연동·시연 검증 후 `develop → main` PR로 배포 버전을 반영합니다. 두 브랜치에 직접 push하지 않습니다. `develop`에서는 CI 검증만 실행하며, `main` 병합 후 테스트가 통과하면 서울 EC2 서버를 자동 재배포합니다.
+
+- [회원 저장 기반·정책·MySQL 통합 테스트](docs/member-foundation.md)
+- [감정 기본 데이터](docs/emotion-catalog.md)
 - [개발·Git 협업 규칙 제안](CONTRIBUTING.md)
 - [GitHub 관리자 설정 및 초기화 체크리스트](docs/repository-setup.md)
 - [PR 작성 양식](.github/pull_request_template.md)
 - API·기능 명세·ERD: 팀 공유 노션과 ERDCloud에서 관리합니다. 공개 저장소에 연결할 링크는 팀이 공유 범위를 확인한 뒤 추가합니다.
 
 AGENTS.md는 요청에 따라 이번 구성에 포함하지 않습니다.
+- [시연 전 직접 설정할 항목 — SMTP·Google·배포 주소·QR 연동](docs/pre-demo-checklist.md)
+- [이메일 인증 API와 발송 방식](docs/email-verification.md)
+
+- [Google 로그인 API·토큰·프론트 연동](docs/google-login.md)
+- [돌봄 기본 데이터와 분류 API](docs/care-catalog.md)
