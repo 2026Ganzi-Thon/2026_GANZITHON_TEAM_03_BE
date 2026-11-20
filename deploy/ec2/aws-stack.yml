@@ -82,7 +82,7 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: 'repo:2026Ganzi-Thon@344226076/2026_GANZITHON_TEAM_03_BE@1424107394:ref:refs/heads/develop'
+                token.actions.githubusercontent.com:sub: 'repo:2026Ganzi-Thon@344226076/2026_GANZITHON_TEAM_03_BE@1424107394:ref:refs/heads/main'
       Policies:
         - PolicyName: DeployDemoBackend
           PolicyDocument:

@@ -48,7 +48,7 @@
 
 ## 협업 문서
 
-기능은 최신 `develop`에서 브랜치를 만들고 `기능 브랜치 → develop` PR로 통합합니다. 연동·시연 검증 후 `develop → main` PR로 배포 버전을 반영합니다. 두 브랜치에 직접 push하지 않습니다.
+기능은 최신 `develop`에서 브랜치를 만들고 `기능 브랜치 → develop` PR로 통합합니다. 연동·시연 검증 후 `develop → main` PR로 배포 버전을 반영합니다. 두 브랜치에 직접 push하지 않습니다. `develop`에서는 CI 검증만 실행하며, `main` 병합 후 테스트가 통과하면 서울 EC2 서버를 자동 재배포합니다.
 
 - [회원 저장 기반·정책·MySQL 통합 테스트](docs/member-foundation.md)
 - [감정 기본 데이터](docs/emotion-catalog.md)
